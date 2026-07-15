@@ -286,3 +286,59 @@ CREATE TABLE stock_prices (
         REFERENCES companies(id)
 
 );
+
+DROP TABLE IF EXISTS profitandloss;
+
+CREATE TABLE profitandloss (
+
+    id INTEGER PRIMARY KEY,
+
+    company_id TEXT,
+
+    year TEXT,
+
+    sales REAL,
+
+    expenses REAL,
+
+    operating_profit REAL,
+
+    opm_percentage REAL,
+
+    other_income REAL,
+
+    interest REAL,
+
+    depreciation REAL,
+
+    profit_before_tax REAL,
+
+    tax_percentage REAL,
+
+    net_profit REAL,
+
+    eps REAL,
+
+    dividend_payout REAL,
+
+    FOREIGN KEY(company_id)
+        REFERENCES companies(id)
+
+);
+
+DROP TABLE IF EXISTS prosandcons;
+
+CREATE TABLE prosandcons (
+
+    id INTEGER PRIMARY KEY,
+
+    company_id TEXT,
+
+    pros TEXT,
+
+    cons TEXT,
+
+    FOREIGN KEY(company_id)
+        REFERENCES companies(id)
+
+);

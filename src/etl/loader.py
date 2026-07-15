@@ -161,29 +161,18 @@ def load_all_excel_files():
 
 
 TABLE_MAPPING = {
-
-
     "companies": "companies",
-
     "analysis": "analysis",
-
     "balancesheet": "balancesheet",
-
     "cashflow": "cashflow",
-
     "documents": "documents",
-
     "financial_ratios": "financial_ratios",
-
     "market_cap": "market_cap",
-
     "peer_groups": "peer_groups",
-
+    "profitandloss": "profitandloss",
+    "prosandcons": "prosandcons",
     "sectors": "sectors",
-
-    "stock_prices": "stock_prices"
-
-
+    "stock_prices": "stock_prices",
 }
 
 
