@@ -1,14 +1,20 @@
+"""
+loader.py
+
+Load all Excel files from data/raw.
+"""
+
 from pathlib import Path
 import pandas as pd
 
-# ==========================================
+# ==========================================================
 # Project Paths
-# ==========================================
+# ==========================================================
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 RAW_DATA_PATH = BASE_DIR / "data" / "raw"
 
-# Files whose actual header starts from Row 2
+# Files where the actual header starts from the second row
 HEADER_ONE_FILES = {
     "analysis",
     "balancesheet",
@@ -19,6 +25,10 @@ HEADER_ONE_FILES = {
     "prosandcons",
 }
 
+
+# ==========================================================
+# Load All Excel Files
+# ==========================================================
 
 def load_all_excel_files():
 
@@ -39,6 +49,23 @@ def load_all_excel_files():
             else:
                 df = pd.read_excel(file)
 
+            # Remove completely empty rows
+            df = df.dropna(how="all")
+
+            # Remove completely empty columns
+            df = df.dropna(axis=1, how="all")
+
+            # Remove duplicate rows
+            df = df.drop_duplicates()
+
+            # Clean column names
+            df.columns = (
+                df.columns.astype(str)
+                .str.strip()
+                .str.replace("\n", " ", regex=False)
+                .str.replace("  ", " ", regex=False)
+            )
+
             datasets[file.stem] = df
 
             print(f"✔ Loaded : {file.name}")
@@ -50,6 +77,24 @@ def load_all_excel_files():
 
     return datasets
 
+
+# ==========================================================
+# Get One Dataset
+# ==========================================================
+
+def get_dataset(dataset_name):
+
+    datasets = load_all_excel_files()
+
+    if dataset_name not in datasets:
+        raise ValueError(f"{dataset_name} not found.")
+
+    return datasets[dataset_name]
+
+
+# ==========================================================
+# Dataset Summary
+# ==========================================================
 
 def show_summary(datasets):
 
@@ -74,12 +119,15 @@ def show_summary(datasets):
 
         print("-" * 70)
 
+    print(f"\nTotal Datasets Loaded : {len(datasets)}")
 
+
+# ==========================================================
+# Main
+# ==========================================================
 
 if __name__ == "__main__":
 
     datasets = load_all_excel_files()
 
     show_summary(datasets)
-
-    print(f"\nTotal Datasets Loaded : {len(datasets)}")
