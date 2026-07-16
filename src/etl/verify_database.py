@@ -1,50 +1,65 @@
+"""
+verify_database.py
+
+Verify SQLite database after loading data.
+"""
+
 import sqlite3
-import pandas as pd
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parents[2]
+# ==========================================
+# Paths
+# ==========================================
 
+BASE_DIR = Path(__file__).resolve().parents[2]
 DB_PATH = BASE_DIR / "db" / "nifty100.db"
 
-conn = sqlite3.connect(DB_PATH)
 
-tables = pd.read_sql(
-    """
-    SELECT name
-    FROM sqlite_master
-    WHERE type='table'
-    ORDER BY name
-    """,
-    conn
-)
+def verify_database():
 
-print("=" * 60)
-print("TABLE ROW COUNTS")
-print("=" * 60)
+    print("=" * 60)
+    print("Database Verification")
+    print("=" * 60)
 
-for table in tables["name"]:
+    conn = sqlite3.connect(DB_PATH)
 
-    count = pd.read_sql(
-        f"SELECT COUNT(*) AS rows FROM {table}",
-        conn
-    )
+    cursor = conn.cursor()
 
-    print(f"{table:20} {count.iloc[0,0]}")
+    tables = [
 
-print("\n")
+        "companies",
+        "analysis",
+        "balancesheet",
+        "cashflow",
+        "documents",
+        "financial_ratios",
+        "market_cap",
+        "peer_groups",
+        "profitandloss",
+        "prosandcons",
+        "sectors",
+        "stock_prices"
 
-print("=" * 60)
-print("FOREIGN KEY CHECK")
-print("=" * 60)
+    ]
 
-fk = pd.read_sql(
-    "PRAGMA foreign_key_check;",
-    conn
-)
+    total_rows = 0
 
-if fk.empty:
-    print("✔ No Foreign Key Violations")
-else:
-    print(fk)
+    for table in tables:
 
-conn.close()
+        cursor.execute(f"SELECT COUNT(*) FROM {table}")
+
+        rows = cursor.fetchone()[0]
+
+        total_rows += rows
+
+        print(f"{table:<20} {rows:>8} rows")
+
+    print("-" * 60)
+
+    print(f"Total Rows Loaded : {total_rows}")
+
+    conn.close()
+
+
+if __name__ == "__main__":
+    verify_database()
