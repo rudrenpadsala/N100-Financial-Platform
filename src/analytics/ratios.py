@@ -222,4 +222,196 @@ def return_on_assets(net_profit, total_assets):
         (net_profit / total_assets) * 100,
         2
     )
+# --------------------------------------------------
+# Debt-to-Equity Ratio
+# --------------------------------------------------
 
+def debt_to_equity(
+    borrowings,
+    equity_capital,
+    reserves
+):
+    """
+    Debt-to-Equity Ratio
+
+    Formula:
+        Borrowings / (Equity Capital + Reserves)
+
+    Rules:
+        • Return 0 if borrowings = 0
+        • Return None if equity <= 0
+        • Round to 2 decimal places
+    """
+
+    if borrowings is None:
+        return None
+
+    if borrowings == 0:
+        return 0
+
+    if equity_capital is None or reserves is None:
+        return None
+
+    equity = equity_capital + reserves
+
+    if equity <= 0:
+        return None
+
+    return round(
+        borrowings / equity,
+        2
+    )
+
+# --------------------------------------------------
+# High Leverage Flag
+# --------------------------------------------------
+
+def high_leverage_flag(
+    debt_equity,
+    broad_sector
+):
+    """
+    High leverage check.
+
+    Financial companies are excluded.
+
+    Returns:
+        True / False
+    """
+
+    if debt_equity is None:
+        return False
+
+    if broad_sector == "Financials":
+        return False
+
+    return debt_equity > 5
+
+
+
+# --------------------------------------------------
+# Interest Coverage Ratio (ICR)
+# --------------------------------------------------
+
+def interest_coverage_ratio(
+    operating_profit,
+    other_income,
+    interest
+):
+    """
+    Interest Coverage Ratio
+
+    Formula:
+        (Operating Profit + Other Income) / Interest
+
+    Rules:
+        • Return None if interest is 0 or None.
+        • Round result to 2 decimal places.
+    """
+
+    if interest is None:
+        return None
+
+    if interest == 0:
+        return None
+
+    return round(
+        (operating_profit + other_income) / interest,
+        2
+    )
+
+
+# --------------------------------------------------
+# ICR Label
+# --------------------------------------------------
+
+def icr_label(icr):
+    """
+    Display label for Interest Coverage Ratio.
+
+    Returns:
+        "Debt Free" if ICR is None
+        "" otherwise
+    """
+
+    if icr is None:
+        return "Debt Free"
+
+    return ""
+
+
+# --------------------------------------------------
+# ICR Warning Flag
+# --------------------------------------------------
+
+def icr_warning_flag(icr):
+    """
+    Warning if ICR < 1.5
+    """
+
+    if icr is None:
+        return False
+
+    return icr < 1.5
+
+
+# --------------------------------------------------
+# Net Debt
+# --------------------------------------------------
+
+def net_debt(
+    borrowings,
+    investments
+):
+    """
+    Net Debt
+
+    Formula:
+        Borrowings - Investments
+
+    Rules:
+        • Return None if borrowings or investments is None.
+        • Round result to 2 decimal places.
+    """
+
+    if borrowings is None:
+        return None
+
+    if investments is None:
+        return None
+
+    return round(
+        borrowings - investments,
+        2
+    )
+
+# --------------------------------------------------
+# Asset Turnover Ratio
+# --------------------------------------------------
+
+def asset_turnover(
+    sales,
+    total_assets
+):
+    """
+    Asset Turnover
+
+    Formula:
+        Sales / Total Assets
+
+    Rules:
+        • Return None if total_assets <= 0.
+        • Round result to 2 decimal places.
+    """
+
+    if total_assets is None:
+        return None
+
+    if total_assets <= 0:
+        return None
+
+    return round(
+        sales / total_assets,
+        2
+    )
+    

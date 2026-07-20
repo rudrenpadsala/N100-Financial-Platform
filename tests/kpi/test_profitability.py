@@ -94,3 +94,69 @@ def test_return_on_capital_employed():
 def test_return_on_assets():
 
     assert return_on_assets(200, 1000) == 20.0
+
+
+# --------------------------------------------------
+# Debt-to-Equity Ratio
+# --------------------------------------------------
+
+def debt_to_equity(
+    borrowings,
+    equity_capital,
+    reserves
+):
+    """
+    Debt-to-Equity Ratio
+
+    Formula:
+        Borrowings / (Equity Capital + Reserves)
+
+    Rules:
+        • Return 0 if borrowings = 0
+        • Return None if equity <= 0
+        • Round to 2 decimal places
+    """
+
+    if borrowings is None:
+        return None
+
+    if borrowings == 0:
+        return 0
+
+    if equity_capital is None or reserves is None:
+        return None
+
+    equity = equity_capital + reserves
+
+    if equity <= 0:
+        return None
+
+    return round(
+        borrowings / equity,
+        2
+    )
+
+# --------------------------------------------------
+# High Leverage Flag
+# --------------------------------------------------
+
+def high_leverage_flag(
+    debt_equity,
+    broad_sector
+):
+    """
+    High leverage check.
+
+    Financial companies are excluded.
+
+    Returns:
+        True / False
+    """
+
+    if debt_equity is None:
+        return False
+
+    if broad_sector == "Financials":
+        return False
+
+    return debt_equity > 5
