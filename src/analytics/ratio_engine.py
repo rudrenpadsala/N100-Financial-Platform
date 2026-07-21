@@ -14,6 +14,12 @@ from src.analytics.cashflow_kpis import (
     free_cash_flow
 )
 
+from src.analytics.cagr import (
+    revenue_cagr,
+    pat_cagr,
+    eps_cagr
+)
+
 DB_PATH = "db/nifty100.db"
 
 
@@ -25,9 +31,9 @@ def main():
 
     conn = sqlite3.connect(DB_PATH)
 
-    # -----------------------------
+    # ----------------------------------
     # Load Tables
-    # -----------------------------
+    # ----------------------------------
 
     profit_loss = pd.read_sql(
         "SELECT * FROM profitandloss",
@@ -48,9 +54,9 @@ def main():
     print("✔ balancesheet  :", len(balance_sheet))
     print("✔ cashflow      :", len(cashflow))
 
-    # -----------------------------
-    # Remove TTM rows
-    # -----------------------------
+    # ----------------------------------
+    # Remove TTM Rows
+    # ----------------------------------
 
     profit_loss = profit_loss[
         profit_loss["year"] != "TTM"
@@ -64,13 +70,9 @@ def main():
         cashflow["year"] != "TTM"
     ]
 
-    # -----------------------------
-    # Merge
-    # -----------------------------
-
     # ----------------------------------
-# Remove Duplicate Company-Year Records
-# ----------------------------------
+    # Remove Duplicate Company-Year Records
+    # ----------------------------------
 
     profit_loss = profit_loss.drop_duplicates(
         subset=["company_id", "year"],
@@ -87,10 +89,14 @@ def main():
         keep="first"
     )
 
-    print("Duplicates removed.")
+    print("\nDuplicates removed.")
     print("Profit & Loss :", len(profit_loss))
     print("Balance Sheet :", len(balance_sheet))
     print("Cash Flow     :", len(cashflow))
+
+    # ----------------------------------
+    # Merge Tables
+    # ----------------------------------
 
     df = (
         profit_loss
@@ -108,12 +114,29 @@ def main():
 
     print("✔ Merged Rows :", len(df))
 
+    # ----------------------------------
+# Load Company CAGR
+# ----------------------------------
+
+    cagr_df = pd.read_csv("output/company_cagr.csv")
+
+    print("✔ Company CAGR :", len(cagr_df))
+
+    # ----------------------------------
+    # Results List
+    # ----------------------------------
+
     results = []
-        # -----------------------------
+
+    # ----------------------------------
     # Calculate Ratios
-    # -----------------------------
+    # ----------------------------------
 
     for _, row in df.iterrows():
+
+        # -------------------------
+        # Basic KPIs
+        # -------------------------
 
         npm = net_profit_margin(
             row["net_profit"],
@@ -153,6 +176,42 @@ def main():
             row["investing_activity"]
         )
 
+        # -------------------------
+        # CAGR (Placeholder)
+        # -------------------------
+
+        # -------------------------
+# CAGR Lookup
+# -------------------------
+
+        company_cagr = cagr_df[
+         cagr_df["company_id"] == row["company_id"]
+        ]
+
+        if not company_cagr.empty:
+
+            revenue_cagr_5yr = company_cagr.iloc[0]["revenue_cagr_pct"]
+            pat_cagr_5yr = company_cagr.iloc[0]["pat_cagr_pct"]
+            eps_cagr_5yr = company_cagr.iloc[0]["eps_cagr_pct"]
+
+            revenue_cagr_flag = company_cagr.iloc[0]["revenue_flag"]
+            pat_cagr_flag = company_cagr.iloc[0]["pat_flag"]
+            eps_cagr_flag = company_cagr.iloc[0]["eps_flag"]
+
+        else:
+
+            revenue_cagr_5yr = None
+            pat_cagr_5yr = None
+            eps_cagr_5yr = None
+
+            revenue_cagr_flag = None
+            pat_cagr_flag = None
+            eps_cagr_flag = None
+
+        # -------------------------
+        # Additional KPIs
+        # -------------------------
+
         capex = (
             abs(row["investing_activity"])
             if pd.notna(row["investing_activity"])
@@ -166,7 +225,8 @@ def main():
             and row["equity_capital"] != 0
         ):
             book_value = (
-                row["equity_capital"] + row["reserves"]
+                row["equity_capital"] +
+                row["reserves"]
             ) / row["equity_capital"]
         else:
             book_value = None
@@ -177,7 +237,30 @@ def main():
 
         cfo = row["operating_activity"]
 
+        # -------------------------
+        # Composite Quality Score
+        # -------------------------
 
+        score = 0
+
+        if roe is not None and roe >= 15:
+            score += 25
+
+        if de is not None and de <= 1:
+            score += 25
+
+        if icr is not None and icr >= 3:
+            score += 25
+
+        if fcf is not None and fcf > 0:
+            score += 25
+
+        composite_quality_score = score
+    
+
+        # -------------------------
+        # Save Row
+        # -------------------------
 
         results.append({
 
@@ -187,19 +270,35 @@ def main():
             "net_profit_margin_pct": npm,
             "operating_profit_margin_pct": opm,
             "return_on_equity_pct": roe,
+
             "debt_to_equity": de,
             "interest_coverage": icr,
             "asset_turnover": turnover,
-            "free_cash_flow_cr": fcf,
 
+            "free_cash_flow_cr": fcf,
             "capex_cr": capex,
+
             "earnings_per_share": eps,
             "book_value_per_share": book_value,
+
             "dividend_payout_ratio_pct": dividend,
+
             "total_debt_cr": total_debt,
-            "cash_from_operations_cr": cfo
+
+            "cash_from_operations_cr": cfo,
+
+            "revenue_cagr_5yr": revenue_cagr_5yr,
+            "pat_cagr_5yr": pat_cagr_5yr,
+            "eps_cagr_5yr": eps_cagr_5yr,
+
+            "revenue_cagr_flag": revenue_cagr_flag,
+            "pat_cagr_flag": pat_cagr_flag,
+            "eps_cagr_flag": eps_cagr_flag,
+
+            "composite_quality_score": composite_quality_score
 
         })
+
 
     # ----------------------------------
     # Create DataFrame
@@ -221,26 +320,33 @@ def main():
     # Clear old data
     conn.execute("DELETE FROM financial_ratios")
 
-    # Keep only columns that exist in the table
+    # Keep only required columns
     ratios = ratios[
-        [
-            "company_id",
-            "year",
-            "net_profit_margin_pct",
-            "operating_profit_margin_pct",
-            "return_on_equity_pct",
-            "debt_to_equity",
-            "interest_coverage",
-            "asset_turnover",
-            "free_cash_flow_cr",
-            "capex_cr",
-            "earnings_per_share",
-            "book_value_per_share",
-            "dividend_payout_ratio_pct",
-            "total_debt_cr",
-            "cash_from_operations_cr"
-        ]
+    [
+        "company_id",
+        "year",
+        "net_profit_margin_pct",
+        "operating_profit_margin_pct",
+        "return_on_equity_pct",
+        "debt_to_equity",
+        "interest_coverage",
+        "asset_turnover",
+        "free_cash_flow_cr",
+        "capex_cr",
+        "earnings_per_share",
+        "book_value_per_share",
+        "dividend_payout_ratio_pct",
+        "total_debt_cr",
+        "cash_from_operations_cr",
+        "revenue_cagr_5yr",
+        "pat_cagr_5yr",
+        "eps_cagr_5yr",
+        "revenue_cagr_flag",
+        "pat_cagr_flag",
+        "eps_cagr_flag",
+        "composite_quality_score"
     ]
+]
 
     ratios.to_sql(
         "financial_ratios",
@@ -266,7 +372,6 @@ def main():
     print(count)
 
     print("\nExpected Rows :", len(ratios))
-
 
     # ----------------------------------
     # Close Database
