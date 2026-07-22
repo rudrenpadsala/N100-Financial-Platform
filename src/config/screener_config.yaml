@@ -23,7 +23,6 @@ dividend_champion:
 debt_free_bluechip:
   de_max: 0
   roe_min: 12
-  sales_min: 5000
 
 turnaround_watch:
   revenue_cagr_3yr_min: 10
