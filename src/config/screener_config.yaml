@@ -5,9 +5,10 @@ quality_compounder:
   revenue_cagr_min: 10
 
 value_pick:
-  pe_max: 20
-  pb_max: 3
-  de_max: 2
+  pe_max: 15
+  pb_max: 2
+  roe_min: 15
+  de_max: 1
   dividend_yield_min: 1
 
 growth_accelerator:
@@ -16,14 +17,17 @@ growth_accelerator:
   de_max: 2
 
 dividend_champion:
-  dividend_yield_min: 2
-  dividend_payout_max: 80
+  dividend_yield_min: 2.5
+  dividend_payout_max: 70
+  roe_min: 10
   fcf_min: 0
 
 debt_free_bluechip:
   de_max: 0
   roe_min: 12
+  sales_min: 5000
 
 turnaround_watch:
-  revenue_cagr_3yr_min: 10
+  revenue_cagr_min: 10
   fcf_min: 0
+  de_max: 2
