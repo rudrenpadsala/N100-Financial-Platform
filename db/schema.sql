@@ -282,3 +282,25 @@ CREATE TABLE stock_prices (
         REFERENCES companies(id)
 
 );
+
+-- =====================================================
+-- PEER PERCENTILES
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS peer_percentiles (
+
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    company_id TEXT NOT NULL,
+
+    peer_group_name TEXT NOT NULL,
+
+    metric TEXT NOT NULL,
+
+    value REAL,
+
+    percentile_rank REAL,
+
+    year TEXT
+
+);
