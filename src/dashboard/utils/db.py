@@ -1,5 +1,5 @@
 """
-Shared SQLite data loader
+Shared SQLite Data Loader
 Used by every Streamlit screen
 """
 
@@ -11,7 +11,7 @@ DB_PATH = "db/nifty100.db"
 
 
 # -----------------------------------------------------
-# Connection
+# SQLite Connection
 # -----------------------------------------------------
 
 def get_connection():
@@ -45,39 +45,36 @@ def get_companies():
 # -----------------------------------------------------
 
 @st.cache_data(ttl=600)
-def get_ratios(ticker, year=None):
+def get_ratios(ticker=None, year=None):
 
     conn = get_connection()
 
-    if year is None:
+    query = """
+    SELECT *
+    FROM financial_ratios
+    """
 
-        query = """
-        SELECT *
-        FROM financial_ratios
-        WHERE company_id = ?
-        ORDER BY year
-        """
+    conditions = []
+    params = []
 
-        df = pd.read_sql(
-            query,
-            conn,
-            params=(ticker,)
-        )
+    if ticker is not None:
+        conditions.append("company_id = ?")
+        params.append(ticker)
 
-    else:
+    if year is not None:
+        conditions.append("year = ?")
+        params.append(year)
 
-        query = """
-        SELECT *
-        FROM financial_ratios
-        WHERE company_id = ?
-        AND year = ?
-        """
+    if conditions:
+        query += " WHERE " + " AND ".join(conditions)
 
-        df = pd.read_sql(
-            query,
-            conn,
-            params=(ticker, year)
-        )
+    query += " ORDER BY company_id, year"
+
+    df = pd.read_sql(
+        query,
+        conn,
+        params=params
+    )
 
     conn.close()
 
@@ -89,21 +86,27 @@ def get_ratios(ticker, year=None):
 # -----------------------------------------------------
 
 @st.cache_data(ttl=600)
-def get_pl(ticker):
+def get_pl(ticker=None):
 
     conn = get_connection()
 
     query = """
     SELECT *
     FROM profitandloss
-    WHERE company_id = ?
-    ORDER BY year
     """
+
+    params = []
+
+    if ticker is not None:
+        query += " WHERE company_id = ?"
+        params.append(ticker)
+
+    query += " ORDER BY year"
 
     df = pd.read_sql(
         query,
         conn,
-        params=(ticker,)
+        params=params,
     )
 
     conn.close()
@@ -116,21 +119,27 @@ def get_pl(ticker):
 # -----------------------------------------------------
 
 @st.cache_data(ttl=600)
-def get_bs(ticker):
+def get_bs(ticker=None):
 
     conn = get_connection()
 
     query = """
     SELECT *
     FROM balancesheet
-    WHERE company_id = ?
-    ORDER BY year
     """
+
+    params = []
+
+    if ticker is not None:
+        query += " WHERE company_id = ?"
+        params.append(ticker)
+
+    query += " ORDER BY year"
 
     df = pd.read_sql(
         query,
         conn,
-        params=(ticker,)
+        params=params,
     )
 
     conn.close()
@@ -143,30 +152,35 @@ def get_bs(ticker):
 # -----------------------------------------------------
 
 @st.cache_data(ttl=600)
-def get_cf(ticker):
+def get_cf(ticker=None):
 
     conn = get_connection()
 
     query = """
     SELECT *
     FROM cashflow
-    WHERE company_id = ?
-    ORDER BY year
     """
+
+    params = []
+
+    if ticker is not None:
+        query += " WHERE company_id = ?"
+        params.append(ticker)
+
+    query += " ORDER BY year"
 
     df = pd.read_sql(
         query,
         conn,
-        params=(ticker,)
+        params=params,
     )
 
     conn.close()
 
     return df
 
-
 # -----------------------------------------------------
-# Sector Data
+# Sector Information
 # -----------------------------------------------------
 
 @st.cache_data(ttl=600)
@@ -177,7 +191,7 @@ def get_sectors():
     query = """
     SELECT *
     FROM sectors
-    ORDER BY broad_sector
+    ORDER BY broad_sector, sub_sector
     """
 
     df = pd.read_sql(query, conn)
@@ -192,20 +206,32 @@ def get_sectors():
 # -----------------------------------------------------
 
 @st.cache_data(ttl=600)
-def get_peers(group_name):
+def get_peers(group_name=None):
 
     conn = get_connection()
 
     query = """
     SELECT *
     FROM peer_groups
-    WHERE peer_group_name = ?
+    """
+
+    params = []
+
+    if group_name is not None:
+        query += " WHERE peer_group_name = ?"
+        params.append(group_name)
+
+    query += """
+    ORDER BY
+        peer_group_name,
+        is_benchmark DESC,
+        company_id
     """
 
     df = pd.read_sql(
         query,
         conn,
-        params=(group_name,)
+        params=params,
     )
 
     conn.close()
@@ -218,26 +244,33 @@ def get_peers(group_name):
 # -----------------------------------------------------
 
 @st.cache_data(ttl=600)
-def get_valuation(ticker):
+def get_valuation(ticker=None):
 
     conn = get_connection()
 
-    query = """
-    SELECT *
-    FROM valuation_summary
-    WHERE company_id = ?
-    """
-
     try:
+
+        query = """
+        SELECT *
+        FROM valuation_summary
+        """
+
+        params = []
+
+        if ticker is not None:
+            query += " WHERE company_id = ?"
+            params.append(ticker)
 
         df = pd.read_sql(
             query,
             conn,
-            params=(ticker,)
+            params=params,
         )
 
     except Exception:
 
+        # Day 23: valuation table may not exist yet.
+        # Day 26 will generate it.
         df = pd.DataFrame()
 
     conn.close()
