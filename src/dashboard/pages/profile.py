@@ -1,3 +1,5 @@
+import time
+
 import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
@@ -12,6 +14,150 @@ from utils.db import (
     get_cf,
     get_sectors,
 )
+
+
+# -------------------------------------------------------
+# Styling (CSS) - same treatment as other dashboard pages
+# -------------------------------------------------------
+def inject_css():
+    st.markdown(
+        """
+        <style>
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(14px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .main .block-container {
+            animation: fadeInUp 0.6s ease-out;
+            padding-top: 2rem;
+        }
+
+        h1 {
+            background: linear-gradient(90deg, #6C63FF, #FF6B9D, #FFB86C);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: shimmer 6s linear infinite;
+            font-weight: 800 !important;
+        }
+
+        @keyframes shimmer {
+            0%   { background-position: 0% center; }
+            100% { background-position: 200% center; }
+        }
+
+        h2, h3 {
+            font-weight: 700 !important;
+            border-left: 4px solid #6C63FF;
+            padding-left: 0.6rem;
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        div[data-testid="stMetric"] {
+            background: linear-gradient(135deg, rgba(108,99,255,0.08), rgba(255,107,157,0.08));
+            border: 1px solid rgba(108,99,255,0.25);
+            border-radius: 16px;
+            padding: 1rem 1rem 0.6rem 1rem;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+            animation: fadeInUp 0.7s ease-out;
+        }
+
+        div[data-testid="stMetric"]:hover {
+            transform: translateY(-6px) scale(1.02);
+            box-shadow: 0 10px 24px rgba(108,99,255,0.25);
+            border-color: #6C63FF;
+        }
+
+        div[data-testid="stMetricLabel"] {
+            font-weight: 600;
+            opacity: 0.75;
+        }
+
+        div[data-testid="stMetricValue"] {
+            font-size: 1.6rem !important;
+            font-weight: 800 !important;
+        }
+
+        hr {
+            margin-top: 1.2rem;
+            margin-bottom: 1.2rem;
+            border: none;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #6C63FF, transparent);
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        div[data-testid="stPlotlyChart"],
+        div[data-testid="stDataFrame"],
+        div[data-testid="stExpander"] {
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+            transition: box-shadow 0.25s ease, transform 0.25s ease;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        div[data-testid="stPlotlyChart"]:hover,
+        div[data-testid="stDataFrame"]:hover {
+            box-shadow: 0 10px 26px rgba(0,0,0,0.12);
+            transform: translateY(-3px);
+        }
+
+        div[data-testid="stSelectbox"] label {
+            font-weight: 700;
+            color: #6C63FF;
+        }
+
+        div[data-baseweb="select"] {
+            border-radius: 10px !important;
+            transition: box-shadow 0.25s ease;
+        }
+
+        div[data-baseweb="select"]:hover {
+            box-shadow: 0 0 0 2px rgba(108,99,255,0.3);
+        }
+
+        div[data-testid="stAlert"] {
+            border-radius: 12px;
+            animation: fadeInUp 0.6s ease-out;
+            transition: transform 0.2s ease;
+        }
+
+        div[data-testid="stAlert"]:hover {
+            transform: translateY(-2px);
+        }
+
+        div[data-testid="stDownloadButton"] button {
+            border-radius: 10px;
+            font-weight: 700;
+            background: linear-gradient(90deg, #6C63FF, #FF6B9D);
+            color: white;
+            border: none;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        div[data-testid="stDownloadButton"] button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 18px rgba(108,99,255,0.35);
+        }
+
+        .stCaption, [data-testid="stCaptionContainer"] {
+            opacity: 0.7;
+            animation: fadeInUp 0.9s ease-out;
+        }
+
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def styled_divider():
+    st.markdown("<hr/>", unsafe_allow_html=True)
 
 
 # -------------------------------------------------------
@@ -32,6 +178,8 @@ def safe_value(value, default=0):
 # Company Profile Page
 # -------------------------------------------------------
 def show():
+
+    inject_css()
 
     st.title("🏢 Company Profile")
 
@@ -145,12 +293,11 @@ def show():
         latest.get("composite_quality_score")
     )
 
-
-        # ==========================================================
+    # ==========================================================
     # Company Information
     # ==========================================================
 
-    st.markdown("---")
+    styled_divider()
 
     info_col, sector_col = st.columns([2, 1])
 
@@ -223,7 +370,7 @@ def show():
     # KPI Cards
     # ==========================================================
 
-    st.markdown("---")
+    styled_divider()
 
     st.subheader("Key Financial Metrics")
 
@@ -265,12 +412,11 @@ def show():
         f"{quality:.2f}"
     )
 
-
-        # ==========================================================
-    # Revenue vs Net Profit Chart
+    # ==========================================================
+    # Revenue vs Net Profit Chart (animated)
     # ==========================================================
 
-    st.markdown("---")
+    styled_divider()
 
     st.subheader("Revenue vs Net Profit (10 Years)")
 
@@ -281,40 +427,98 @@ def show():
         chart_df["sales"] = chart_df["sales"].fillna(0)
         chart_df["net_profit"] = chart_df["net_profit"].fillna(0)
 
-        revenue_chart = px.bar(
-            chart_df,
-            x="year",
-            y=["sales", "net_profit"],
-            barmode="group",
-            title="Revenue vs Net Profit",
-            labels={
-                "year": "Financial Year",
-                "value": "₹ Crore",
-                "variable": "Metric",
-            },
+        years = chart_df["year"].tolist()
+        sales_final = chart_df["sales"].tolist()
+        profit_final = chart_df["net_profit"].tolist()
+
+        max_val = max(sales_final + profit_final)
+        y_axis_max = max_val * 1.15 if max_val > 0 else 1
+
+        def build_revenue_fig(sales_vals, profit_vals):
+            fig = go.Figure()
+
+            fig.add_trace(
+                go.Bar(
+                    x=years,
+                    y=sales_vals,
+                    name="sales",
+                    marker_color="#6C63FF",
+                )
+            )
+
+            fig.add_trace(
+                go.Bar(
+                    x=years,
+                    y=profit_vals,
+                    name="net_profit",
+                    marker_color="#FF6B9D",
+                )
+            )
+
+            fig.update_layout(
+                title="Revenue vs Net Profit",
+                barmode="group",
+                height=500,
+                xaxis_title="Financial Year",
+                yaxis_title="₹ Crore",
+                legend_title="Metric",
+                yaxis=dict(range=[0, y_axis_max]),
+                transition=dict(duration=0),
+            )
+
+            return fig
+
+        revenue_placeholder = st.empty()
+
+        replay_col_rev, _ = st.columns([1, 5])
+        play_revenue = replay_col_rev.button(
+            "▶ Play Animation",
+            key="revenue_play_btn",
         )
 
-        revenue_chart.update_layout(
-            height=500,
-            xaxis_title="Financial Year",
-            yaxis_title="₹ Crore",
-            legend_title="Metric",
-        )
+        if "revenue_animated_once" not in st.session_state:
+            st.session_state.revenue_animated_once = False
 
-        st.plotly_chart(
-            revenue_chart,
-            use_container_width=True,
-        )
+        def animate_revenue():
+            n_frames = 24
+            for i in range(1, n_frames + 1):
+                t = i / n_frames
+                eased_t = 1 - (1 - t) ** 3  # ease-out cubic
+
+                frame_sales = [v * eased_t for v in sales_final]
+                frame_profit = [v * eased_t for v in profit_final]
+
+                fig = build_revenue_fig(frame_sales, frame_profit)
+
+                revenue_placeholder.plotly_chart(
+                    fig,
+                    use_container_width=True,
+                    key=f"revenue_frame_{i}",
+                )
+
+                time.sleep(0.02)
+
+            st.session_state.revenue_animated_once = True
+
+        if play_revenue or not st.session_state.revenue_animated_once:
+            animate_revenue()
+        else:
+            final_fig = build_revenue_fig(sales_final, profit_final)
+            revenue_placeholder.plotly_chart(
+                final_fig,
+                use_container_width=True,
+                key="revenue_final",
+            )
 
     else:
 
         st.info("Revenue data not available.")
 
     # ==========================================================
-    # ROE vs ROCE Trend
+    # ROE vs ROCE Trend (animated)
     # ==========================================================
 
-    st.markdown("---")
+    styled_divider()
 
     st.subheader("ROE vs ROCE Trend")
 
@@ -327,64 +531,111 @@ def show():
             .fillna(0)
         )
 
-        fig = make_subplots(
-            specs=[[{"secondary_y": True}]]
+        trend_years = trend_df["year"].tolist()
+        roe_final = trend_df["return_on_equity_pct"].tolist()
+        roce_final = [roce] * len(trend_df)
+
+        def build_trend_fig(n_points):
+            fig = make_subplots(
+                specs=[[{"secondary_y": True}]]
+            )
+
+            fig.add_trace(
+                go.Scatter(
+                    x=trend_years[:n_points],
+                    y=roe_final[:n_points],
+                    mode="lines+markers",
+                    name="ROE",
+                    line=dict(color="#6C63FF", width=3),
+                ),
+                secondary_y=False,
+            )
+
+            fig.add_trace(
+                go.Scatter(
+                    x=trend_years[:n_points],
+                    y=roce_final[:n_points],
+                    mode="lines+markers",
+                    name="ROCE",
+                    line=dict(color="#FF6B9D", width=3),
+                ),
+                secondary_y=True,
+            )
+
+            fig.update_layout(
+                height=500,
+                legend_title="Metric",
+                transition=dict(duration=0),
+            )
+
+            fig.update_xaxes(
+                title_text="Financial Year",
+                range=[trend_years[0], trend_years[-1]],
+            )
+
+            roe_max = max(roe_final) * 1.15 if max(roe_final) > 0 else 1
+            roce_max = max(roce_final) * 1.15 if max(roce_final) > 0 else 1
+
+            fig.update_yaxes(
+                title_text="ROE (%)",
+                secondary_y=False,
+                range=[0, roe_max],
+            )
+
+            fig.update_yaxes(
+                title_text="ROCE (%)",
+                secondary_y=True,
+                range=[0, roce_max],
+            )
+
+            return fig
+
+        trend_placeholder = st.empty()
+
+        replay_col_trend, _ = st.columns([1, 5])
+        play_trend = replay_col_trend.button(
+            "▶ Play Animation",
+            key="trend_play_btn",
         )
 
-        fig.add_trace(
-            go.Scatter(
-                x=trend_df["year"],
-                y=trend_df["return_on_equity_pct"],
-                mode="lines+markers",
-                name="ROE",
-            ),
-            secondary_y=False,
-        )
+        if "trend_animated_once" not in st.session_state:
+            st.session_state.trend_animated_once = False
 
-        fig.add_trace(
-            go.Scatter(
-                x=trend_df["year"],
-                y=[roce] * len(trend_df),
-                mode="lines+markers",
-                name="ROCE",
-            ),
-            secondary_y=True,
-        )
+        def animate_trend():
+            total_points = len(trend_years)
 
-        fig.update_layout(
-            height=500,
-            legend_title="Metric",
-        )
+            for n_points in range(1, total_points + 1):
+                fig = build_trend_fig(n_points)
 
-        fig.update_xaxes(
-            title_text="Financial Year"
-        )
+                trend_placeholder.plotly_chart(
+                    fig,
+                    use_container_width=True,
+                    key=f"trend_frame_{n_points}",
+                )
 
-        fig.update_yaxes(
-            title_text="ROE (%)",
-            secondary_y=False,
-        )
+                time.sleep(0.08)
 
-        fig.update_yaxes(
-            title_text="ROCE (%)",
-            secondary_y=True,
-        )
+            st.session_state.trend_animated_once = True
 
-        st.plotly_chart(
-            fig,
-            use_container_width=True,
-        )
+        if play_trend or not st.session_state.trend_animated_once:
+            animate_trend()
+        else:
+            final_fig = build_trend_fig(len(trend_years))
+            trend_placeholder.plotly_chart(
+                final_fig,
+                use_container_width=True,
+                key="trend_final",
+            )
 
     else:
 
         st.info("ROE trend data not available.")
 
-
-        # ==========================================================
+    # ==========================================================
     # Pros & Cons
     # ==========================================================
 
-    st.markdown("---")
+    styled_divider()
 
     st.subheader("Pros & Cons")
 
@@ -470,7 +721,7 @@ def show():
     # Balance Sheet
     # ==========================================================
 
-    st.markdown("---")
+    styled_divider()
 
     st.subheader("Balance Sheet")
 
@@ -498,7 +749,7 @@ def show():
     # Cash Flow Statement
     # ==========================================================
 
-    st.markdown("---")
+    styled_divider()
 
     st.subheader("Cash Flow Statement")
 
@@ -522,11 +773,11 @@ def show():
 
         st.info("Cash Flow data not available.")
 
-        # ==========================================================
+    # ==========================================================
     # Financial Summary
     # ==========================================================
 
-    st.markdown("---")
+    styled_divider()
 
     st.subheader("Financial Summary")
 
@@ -570,7 +821,7 @@ def show():
     # About Company
     # ==========================================================
 
-    st.markdown("---")
+    styled_divider()
 
     st.subheader("About Company")
 
@@ -588,7 +839,7 @@ def show():
     # Useful Links
     # ==========================================================
 
-    st.markdown("---")
+    styled_divider()
 
     st.subheader("Useful Links")
 
@@ -609,7 +860,7 @@ def show():
     # Download Financial Data
     # ==========================================================
 
-    st.markdown("---")
+    styled_divider()
 
     st.subheader("Download Financial Data")
 
@@ -628,7 +879,7 @@ def show():
     # Footer
     # ==========================================================
 
-    st.markdown("---")
+    styled_divider()
 
     st.caption(
         "📊 N100 Financial Analytics Dashboard | Sprint 4 | Day 23"

@@ -238,6 +238,38 @@ def get_peers(group_name=None):
 
     return df
 
+# -----------------------------------------------------
+# Annual Reports
+# -----------------------------------------------------
+
+@st.cache_data(ttl=600)
+def get_reports(company_id=None):
+
+    conn = get_connection()
+
+    query = """
+    SELECT *
+    FROM documents
+    """
+
+    params = []
+
+    if company_id is not None:
+        query += " WHERE company_id = ?"
+        params.append(company_id)
+
+    query += " ORDER BY company_id, Year DESC"
+
+    df = pd.read_sql(
+        query,
+        conn,
+        params=params,
+    )
+
+    conn.close()
+
+    return df
+
 
 # -----------------------------------------------------
 # Valuation

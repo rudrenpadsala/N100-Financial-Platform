@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+from io import BytesIO
 
 from utils.db import (
     get_companies,
@@ -7,153 +8,300 @@ from utils.db import (
     get_sectors,
 )
 
+# ==========================================================
+# Styling
+# ==========================================================
 
-# -------------------------------------------------------
-# Safe Helper
-# -------------------------------------------------------
+def inject_css():
+    st.markdown(
+        """
+<style>
+
+@keyframes fadeInUp{
+    from{opacity:0;transform:translateY(14px);}
+    to{opacity:1;transform:translateY(0);}
+}
+
+.main .block-container{
+    animation:fadeInUp .6s ease-out;
+    padding-top:2rem;
+}
+
+h1{
+    background:linear-gradient(90deg,#6C63FF,#FF6B9D,#FFB86C);
+    background-size:200% auto;
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+    animation:shimmer 6s linear infinite;
+    font-weight:800!important;
+}
+
+@keyframes shimmer{
+    0%{background-position:0%;}
+    100%{background-position:200%;}
+}
+
+h2,h3{
+    border-left:4px solid #6C63FF;
+    padding-left:.6rem;
+    font-weight:700!important;
+}
+
+div[data-testid="stMetric"]{
+    background:linear-gradient(
+        135deg,
+        rgba(108,99,255,.08),
+        rgba(255,107,157,.08)
+    );
+    border:1px solid rgba(108,99,255,.25);
+    border-radius:16px;
+    padding:1rem;
+    transition:.25s;
+}
+
+div[data-testid="stMetric"]:hover{
+    transform:translateY(-4px);
+    box-shadow:0 8px 18px rgba(108,99,255,.25);
+}
+
+div[data-testid="stDataFrame"],
+div[data-testid="stPlotlyChart"]{
+    border-radius:14px;
+    overflow:hidden;
+}
+
+section[data-testid="stSidebar"]{
+    background:linear-gradient(
+        180deg,
+        rgba(108,99,255,.05),
+        rgba(255,107,157,.02)
+    );
+}
+
+</style>
+""",
+        unsafe_allow_html=True,
+    )
+
+
+def divider():
+    st.markdown(
+        "<hr style='margin-top:1rem;margin-bottom:1rem;'>",
+        unsafe_allow_html=True,
+    )
+
+
+# ==========================================================
+# Helper Functions
+# ==========================================================
+
 def safe_series(df, column, default=0):
-
     if column not in df.columns:
         return pd.Series([default] * len(df))
 
     return df[column].fillna(default)
 
 
-# -------------------------------------------------------
+def rating(score):
+    if score >= 80:
+        return "⭐⭐⭐⭐⭐"
+
+    elif score >= 60:
+        return "⭐⭐⭐⭐"
+
+    elif score >= 40:
+        return "⭐⭐⭐"
+
+    elif score >= 20:
+        return "⭐⭐"
+
+    return "⭐"
+
+
+def to_excel(df):
+
+    output = BytesIO()
+
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        df.to_excel(
+            writer,
+            sheet_name="Screener",
+            index=False,
+        )
+
+    return output.getvalue()
+
+# ==========================================================
 # Screener Page
-# -------------------------------------------------------
+# ==========================================================
+
 def show():
+
+    inject_css()
 
     st.title("📊 Stock Screener")
 
-    # ---------------------------------------------------
+    # ------------------------------------------------------
     # Load Data
-    # ---------------------------------------------------
+    # ------------------------------------------------------
 
     companies = get_companies()
     ratios = get_ratios()
     sectors = get_sectors()
 
     if ratios.empty:
-
-        st.warning("Financial Ratio data not available.")
-
+        st.warning("Financial ratio data not available.")
         st.stop()
 
-    # ---------------------------------------------------
+    # ------------------------------------------------------
     # Merge Company Names
-    # ---------------------------------------------------
+    # ------------------------------------------------------
 
     ratios = ratios.merge(
-
         companies[
             [
                 "id",
                 "company_name",
             ]
         ],
-
         left_on="company_id",
-
         right_on="id",
-
         how="left",
-
     )
 
-    # ---------------------------------------------------
-    # Merge Sector
-    # ---------------------------------------------------
+    # ------------------------------------------------------
+    # Merge Sector Information
+    # ------------------------------------------------------
 
     ratios = ratios.merge(
-
         sectors[
             [
                 "company_id",
                 "broad_sector",
             ]
         ],
-
         on="company_id",
-
         how="left",
-
     )
 
-    # ---------------------------------------------------
-    # Latest Year Only
-    # ---------------------------------------------------
+    # ------------------------------------------------------
+    # Fill Missing Values
+    # ------------------------------------------------------
 
-    latest_year = ratios["year"].max()
+    numeric_columns = [
+
+        "return_on_equity_pct",
+
+        "debt_to_equity",
+
+        "free_cash_flow_cr",
+
+        "revenue_cagr_5yr",
+
+        "pat_cagr_5yr",
+
+        "operating_profit_margin_pct",
+
+        "interest_coverage",
+
+        "composite_quality_score",
+
+        "dividend_payout_ratio_pct",
+
+    ]
+
+    for col in numeric_columns:
+        ratios[col] = safe_series(ratios, col)
+
+    # ------------------------------------------------------
+    # Sidebar Filters
+    # ------------------------------------------------------
+
+    st.sidebar.header("📌 Filters")
+
+    # ---------------- Year ----------------
+
+    ratios["calendar_year"] = (
+        ratios["year"]
+        .astype(str)
+        .str[-4:]
+        .astype(int)
+    )
+
+    available_years = sorted(
+        ratios["calendar_year"].unique(),
+        reverse=True,
+    )
+
+    selected_year = st.sidebar.selectbox(
+        "Financial Year",
+        available_years,
+    )
 
     ratios = ratios[
-        ratios["year"] == latest_year
-    ].copy()
+        ratios["calendar_year"] == selected_year
+    ]
 
-    # ---------------------------------------------------
-    # Fill Missing Values
-    # ---------------------------------------------------
+    # ---------------- Sector ----------------
 
-    ratios["return_on_equity_pct"] = safe_series(
-        ratios,
-        "return_on_equity_pct",
+    sector_list = ["All"] + sorted(
+        ratios["broad_sector"]
+        .dropna()
+        .unique()
+        .tolist()
     )
 
-    ratios["debt_to_equity"] = safe_series(
-        ratios,
-        "debt_to_equity",
+    selected_sector = st.sidebar.selectbox(
+        "Sector",
+        sector_list,
     )
 
-    ratios["free_cash_flow_cr"] = safe_series(
-        ratios,
-        "free_cash_flow_cr",
+    if selected_sector != "All":
+
+        ratios = ratios[
+            ratios["broad_sector"] == selected_sector
+        ]
+
+    # ---------------- Company Search ----------------
+
+    company_search = st.sidebar.text_input(
+        "🔍 Search Company"
     )
 
-    ratios["revenue_cagr_5yr"] = safe_series(
-        ratios,
-        "revenue_cagr_5yr",
-    )
+    if company_search:
 
-    ratios["pat_cagr_5yr"] = safe_series(
-        ratios,
-        "pat_cagr_5yr",
-    )
+        ratios = ratios[
+            ratios["company_name"]
+            .str.contains(
+                company_search,
+                case=False,
+                na=False,
+            )
+        ]
 
-    ratios["operating_profit_margin_pct"] = safe_series(
-        ratios,
-        "operating_profit_margin_pct",
-    )
+    # ---------------- Reset ----------------
 
-    ratios["interest_coverage"] = safe_series(
-        ratios,
-        "interest_coverage",
-    )
+    if st.sidebar.button("🔄 Reset Filters"):
+        st.rerun()
 
-    ratios["composite_quality_score"] = safe_series(
-        ratios,
-        "composite_quality_score",
-    )
+        # ======================================================
+    # Dynamic Slider Ranges
+    # ======================================================
 
-        # ---------------------------------------------------
-    # Sidebar Filters
-    # ---------------------------------------------------
-
-    st.sidebar.header("📌 Screener Filters")
+    st.sidebar.header("📊 Financial Filters")
 
     roe_min = st.sidebar.slider(
         "Minimum ROE (%)",
-        0.0,
-        50.0,
+        float(ratios["return_on_equity_pct"].min()),
+        float(ratios["return_on_equity_pct"].max()),
         10.0,
-        0.5,
     )
 
     debt_max = st.sidebar.slider(
         "Maximum Debt / Equity",
-        0.0,
-        5.0,
+        float(ratios["debt_to_equity"].min()),
+        float(ratios["debt_to_equity"].max()),
         1.0,
-        0.1,
     )
 
     fcf_min = st.sidebar.slider(
@@ -165,81 +313,102 @@ def show():
 
     revenue_min = st.sidebar.slider(
         "Minimum Revenue CAGR (%)",
-        -20.0,
-        50.0,
+        float(ratios["revenue_cagr_5yr"].min()),
+        float(ratios["revenue_cagr_5yr"].max()),
         5.0,
-        0.5,
     )
 
     pat_min = st.sidebar.slider(
         "Minimum PAT CAGR (%)",
-        -20.0,
-        50.0,
+        float(ratios["pat_cagr_5yr"].min()),
+        float(ratios["pat_cagr_5yr"].max()),
         5.0,
-        0.5,
     )
 
     opm_min = st.sidebar.slider(
         "Minimum OPM (%)",
-        0.0,
-        80.0,
+        float(ratios["operating_profit_margin_pct"].min()),
+        float(ratios["operating_profit_margin_pct"].max()),
         10.0,
-        0.5,
-    )
-
-    st.sidebar.info(
-        "⚠ P/E and P/B filters are unavailable because valuation data is not loaded."
     )
 
     dividend_min = st.sidebar.slider(
         "Minimum Dividend Payout (%)",
+        float(ratios["dividend_payout_ratio_pct"].min()),
+        float(ratios["dividend_payout_ratio_pct"].max()),
         0.0,
-        100.0,
-        0.0,
-        1.0,
     )
 
     icr_min = st.sidebar.slider(
         "Minimum Interest Coverage",
-        0.0,
-        50.0,
+        float(ratios["interest_coverage"].min()),
+        float(ratios["interest_coverage"].max()),
         3.0,
-        0.5,
     )
 
-    # ---------------------------------------------------
-    # Preset Buttons
-    # ---------------------------------------------------
+    # ======================================================
+    # Sorting
+    # ======================================================
+
+    st.sidebar.header("⬇ Sorting")
+
+    sort_column = st.sidebar.selectbox(
+        "Sort By",
+        [
+            "Quality Score",
+            "ROE",
+            "Revenue CAGR",
+            "PAT CAGR",
+            "Debt/Equity",
+            "Free Cash Flow",
+        ],
+    )
+
+    ascending = st.sidebar.checkbox(
+        "Ascending",
+        False,
+    )
+
+    sort_map = {
+        "Quality Score": "composite_quality_score",
+        "ROE": "return_on_equity_pct",
+        "Revenue CAGR": "revenue_cagr_5yr",
+        "PAT CAGR": "pat_cagr_5yr",
+        "Debt/Equity": "debt_to_equity",
+        "Free Cash Flow": "free_cash_flow_cr",
+    }
+
+    # ======================================================
+    # Quick Presets
+    # ======================================================
+
+    divider()
 
     st.subheader("🎯 Quick Presets")
 
-    b1, b2, b3, b4, b5 = st.columns(5)
+    c1, c2, c3, c4, c5 = st.columns(5)
 
     preset = None
 
-    if b1.button("Quality"):
+    if c1.button("Quality"):
         preset = "quality"
 
-    if b2.button("Growth"):
+    if c2.button("Growth"):
         preset = "growth"
 
-    if b3.button("Dividend"):
+    if c3.button("Dividend"):
         preset = "dividend"
 
-    if b4.button("Debt-Free"):
+    if c4.button("Debt-Free"):
         preset = "debt"
 
-    if b5.button("Turnaround"):
+    if c5.button("Turnaround"):
         preset = "turnaround"
-
-    # ---------------------------------------------------
-    # Apply Presets
-    # ---------------------------------------------------
 
     if preset == "quality":
 
         roe_min = 20
-        debt_max = 0.5
+        debt_max = 0.50
         revenue_min = 10
         pat_min = 10
         opm_min = 15
@@ -257,7 +426,7 @@ def show():
 
     elif preset == "debt":
 
-        debt_max = 0.1
+        debt_max = 0.10
 
     elif preset == "turnaround":
 
@@ -265,9 +434,9 @@ def show():
         pat_min = 5
         fcf_min = 0
 
-        # ---------------------------------------------------
+        # ======================================================
     # Apply Filters
-    # ---------------------------------------------------
+    # ======================================================
 
     filtered = ratios.copy()
 
@@ -296,27 +465,35 @@ def show():
     ]
 
     filtered = filtered[
-        filtered["dividend_payout_ratio_pct"] >= dividend_min
-    ]
-
-    filtered = filtered[
         filtered["interest_coverage"] >= icr_min
     ]
 
-    # ---------------------------------------------------
-    # Sort by Quality Score
-    # ---------------------------------------------------
+    filtered = filtered[
+        filtered["dividend_payout_ratio_pct"] >= dividend_min
+    ]
+
+    # ======================================================
+    # Sorting
+    # ======================================================
 
     filtered = filtered.sort_values(
-        by="composite_quality_score",
-        ascending=False,
+        by=sort_map[sort_column],
+        ascending=ascending,
     )
 
-    # ---------------------------------------------------
-    # Result Count
-    # ---------------------------------------------------
+    # ======================================================
+    # Quality Rating
+    # ======================================================
 
-    st.markdown("---")
+    filtered["Rating"] = filtered[
+        "composite_quality_score"
+    ].apply(rating)
+
+    # ======================================================
+    # Result Count
+    # ======================================================
+
+    divider()
 
     st.subheader("📈 Screening Results")
 
@@ -324,9 +501,38 @@ def show():
         f"✅ {len(filtered)} companies match your filters."
     )
 
-    # ---------------------------------------------------
-    # Display Columns
-    # ---------------------------------------------------
+    st.info(
+        f"Financial Year : {selected_year}   |   Sector : {selected_sector}"
+    )
+
+    # ======================================================
+    # Sector Summary
+    # ======================================================
+
+    if not filtered.empty:
+
+        st.subheader("🏢 Sector Summary")
+
+        sector_summary = (
+            filtered
+            .groupby("broad_sector")
+            .size()
+            .reset_index(name="Companies")
+            .sort_values(
+                "Companies",
+                ascending=False,
+            )
+        )
+
+        st.dataframe(
+            sector_summary,
+            use_container_width=True,
+            hide_index=True,
+        )
+
+    # ======================================================
+    # Display Data
+    # ======================================================
 
     display_df = filtered[
         [
@@ -342,6 +548,7 @@ def show():
             "interest_coverage",
             "dividend_payout_ratio_pct",
             "composite_quality_score",
+            "Rating",
         ]
     ].copy()
 
@@ -362,11 +569,11 @@ def show():
         }
     )
 
-        # ---------------------------------------------------
+        # ======================================================
     # Results Table
-    # ---------------------------------------------------
+    # ======================================================
 
-    st.markdown("---")
+    divider()
 
     if display_df.empty:
 
@@ -382,30 +589,47 @@ def show():
             hide_index=True,
         )
 
-    # ---------------------------------------------------
-    # Download CSV
-    # ---------------------------------------------------
+    # ======================================================
+    # Download Buttons
+    # ======================================================
 
     if not display_df.empty:
+
+        divider()
 
         csv = display_df.to_csv(
             index=False
         ).encode("utf-8")
 
-        st.download_button(
-            label="📥 Download Results (CSV)",
-            data=csv,
-            file_name="screener_results.csv",
-            mime="text/csv",
-        )
+        excel = to_excel(display_df)
 
-    # ---------------------------------------------------
-    # Quick Statistics
-    # ---------------------------------------------------
+        d1, d2 = st.columns(2)
+
+        with d1:
+
+            st.download_button(
+                "📥 Download CSV",
+                csv,
+                "screener_results.csv",
+                "text/csv",
+            )
+
+        with d2:
+
+            st.download_button(
+                "📗 Download Excel",
+                excel,
+                "screener_results.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+
+    # ======================================================
+    # Summary Statistics
+    # ======================================================
 
     if not display_df.empty:
 
-        st.markdown("---")
+        divider()
 
         st.subheader("📊 Filter Summary")
 
@@ -413,31 +637,31 @@ def show():
 
         c1.metric(
             "Companies",
-            len(display_df)
+            len(display_df),
         )
 
         c2.metric(
             "Average ROE",
-            f"{display_df['ROE (%)'].mean():.2f}%"
+            f"{display_df['ROE (%)'].mean():.2f}%",
         )
 
         c3.metric(
             "Average Revenue CAGR",
-            f"{display_df['Revenue CAGR (%)'].mean():.2f}%"
+            f"{display_df['Revenue CAGR (%)'].mean():.2f}%",
         )
 
         c4.metric(
             "Average Quality Score",
-            f"{display_df['Quality Score'].mean():.2f}"
+            f"{display_df['Quality Score'].mean():.2f}",
         )
 
-        # ---------------------------------------------------
-    # Top 10 Quality Companies
-    # ---------------------------------------------------
+    # ======================================================
+    # Top 10 Companies
+    # ======================================================
 
     if not display_df.empty:
 
-        st.markdown("---")
+        divider()
 
         st.subheader("🏆 Top 10 Companies by Quality Score")
 
@@ -456,48 +680,56 @@ def show():
             hide_index=True,
         )
 
-    # ---------------------------------------------------
+    # ======================================================
     # Dataset Information
-    # ---------------------------------------------------
+    # ======================================================
 
-    st.markdown("---")
+    divider()
 
     with st.expander("ℹ Dataset Information"):
 
         st.write(
-            f"**Financial Year:** {latest_year}"
+            f"**Financial Year:** {selected_year}"
         )
 
         st.write(
-            f"**Total Companies Loaded:** {len(ratios)}"
+            f"**Selected Sector:** {selected_sector}"
+        )
+
+        st.write(
+            f"**Companies Loaded:** {len(ratios)}"
         )
 
         st.write(
             f"**Companies Matching Filters:** {len(display_df)}"
         )
 
-        st.write(
-            "**Database Tables Used:**"
-        )
-
         st.markdown(
             """
+### Database Tables Used
+
 - Companies
 - Financial Ratios
 - Sectors
+
+### Current Limitations
+
+- P/E Ratio filter unavailable
+- P/B Ratio filter unavailable
+- Valuation table will be added in Sprint 5
             """
         )
 
-        st.info(
-            "P/E Ratio and P/B Ratio filters are currently disabled because valuation data has not been loaded into the database."
-        )
-
-    # ---------------------------------------------------
+    # ======================================================
     # Footer
-    # ---------------------------------------------------
+    # ======================================================
 
-    st.markdown("---")
+    divider()
 
     st.caption(
         "📊 N100 Financial Analytics Dashboard | Sprint 4 | Day 24 | Stock Screener"
     )
+
+    
+
+    
