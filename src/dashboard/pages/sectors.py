@@ -9,13 +9,23 @@ from utils.db import (
 )
 from utils.theme import page_header
 
-# Fix 4: market cap is optional — import defensively so the page
-# still works if utils/db.py doesn't actually expose this function.
+# get_market_cap and get_pl are imported defensively. If either is
+# missing from utils/db.py, a plain `from utils.db import get_market_cap`
+# at module load time would raise ImportError and crash the ENTIRE
+# dashboard on startup (app.py imports every page module up front),
+# not just this page. Catching it here means a missing function just
+# triggers the in-page fallback instead of taking the whole app down.
 try:
     from utils.db import get_market_cap
     HAS_MARKET_CAP = True
 except ImportError:
     HAS_MARKET_CAP = False
+
+try:
+    from utils.db import get_pl
+    HAS_PL = True
+except ImportError:
+    HAS_PL = False
 
 
 # =========================================================
@@ -46,6 +56,24 @@ def safe_float(value):
     except Exception:
 
         return 0.0
+
+
+# Candidate column names for revenue, in priority order.
+REVENUE_CANDIDATES = [
+    "sales",
+    "revenue",
+    "revenue_cr",
+    "sales_cr",
+    "net_sales_cr",
+    "total_revenue_cr",
+]
+
+def find_revenue_column(df):
+    for col in REVENUE_CANDIDATES:
+        if col in df.columns:
+            return col
+    return None
+
 
 # =========================================================
 # Sector Analysis
@@ -78,6 +106,39 @@ def show():
         )
 
         st.stop()
+
+    # Market cap is required by the sprint spec for bubble sizing.
+    # Loaded here (visibly, not silently) so a failure surfaces
+    # immediately rather than after several merges.
+    market_cap_ok = False
+    market = pd.DataFrame()
+
+    if HAS_MARKET_CAP:
+        try:
+            market = get_market_cap()
+
+            market_cap_ok = (
+                not market.empty
+                and "company_id" in market.columns
+                and "market_cap_crore" in market.columns
+            )
+
+        except Exception:
+            market = pd.DataFrame()
+            market_cap_ok = False
+
+    if not market_cap_ok:
+        reason = (
+            "utils.db.get_market_cap() does not exist yet"
+            if not HAS_MARKET_CAP
+            else "get_market_cap() returned no usable 'company_id' / "
+                 "'market_cap_crore' columns"
+        )
+
+        st.warning(
+            f"⚠️ Market Cap data could not be loaded ({reason}). "
+            "Falling back to Composite Quality Score for bubble size."
+        )
 
     # -----------------------------------------------------
     # Rename Company ID
@@ -123,6 +184,61 @@ def show():
     )
 
     # -----------------------------------------------------
+    # Merge Market Cap
+    # -----------------------------------------------------
+
+    if market_cap_ok:
+        df = df.merge(
+            market[["company_id", "market_cap_crore"]],
+            on="company_id",
+            how="left",
+        )
+
+    # -----------------------------------------------------
+    # Resolve Revenue Column
+    #
+    # Tries known column names first. If none are present on the
+    # merged table, falls back to loading Profit & Loss data (if
+    # get_pl exists) and merging a revenue column from there. If
+    # that also fails, a visible warning is shown and the chart
+    # falls back to Revenue CAGR so the page doesn't crash.
+    # -----------------------------------------------------
+
+    revenue_col = find_revenue_column(df)
+    revenue_ok = revenue_col is not None
+
+    if not revenue_ok and HAS_PL:
+        try:
+            pl = get_pl()
+
+            pl_revenue_col = find_revenue_column(pl)
+
+            if (
+                not pl.empty
+                and "company_id" in pl.columns
+                and pl_revenue_col is not None
+            ):
+                df = df.merge(
+                    pl[["company_id", pl_revenue_col]],
+                    on="company_id",
+                    how="left",
+                )
+
+                revenue_col = pl_revenue_col
+                revenue_ok = True
+
+        except Exception:
+            pass
+
+    if not revenue_ok:
+        st.warning(
+            "⚠️ No Revenue column found on Ratios, Companies, or "
+            "Profit & Loss data. Falling back to Revenue CAGR (5yr) "
+            "for the X axis instead of Revenue."
+        )
+        revenue_col = "revenue_cagr_5yr"
+
+    # -----------------------------------------------------
     # Fill Missing Values
     # -----------------------------------------------------
 
@@ -151,17 +267,22 @@ def show():
         "index_weight_pct",
     )
 
+    df[revenue_col] = safe_series(
+        df,
+        revenue_col,
+    )
+
+    if market_cap_ok:
+        df["market_cap_crore"] = safe_series(
+            df,
+            "market_cap_crore",
+        )
+
     # -----------------------------------------------------
-    # FIX 1: Keep latest record PER COMPANY, not just the
-    # single latest year across the whole table.
-    #
-    # The old code did:
-    #     latest_year = df["year"].max()
-    #     df = df[df["year"] == latest_year]
-    # Since only 1 company (SIEMENS) had a Sep 2024 row while
-    # the other 91 were on Mar 2024, this silently dropped
-    # everyone else. Grouping per company_id and taking each
-    # company's own latest year fixes that.
+    # Keep latest record PER COMPANY, not just the single
+    # latest year across the whole table (the original bug:
+    # df["year"].max() picked Sep 2024, a year only 1 of 92
+    # companies had a row for, dropping the other 91).
     # -----------------------------------------------------
 
     df = (
@@ -173,40 +294,15 @@ def show():
 
     latest_year = "Latest Available"
 
-    # -----------------------------------------------------
-    # FIX 4 (data prep): try to bring in market cap for the
-    # bubble chart. Falls back to quality score if the table
-    # or column isn't actually available.
-    # -----------------------------------------------------
+    # Bubble size column: Market Cap per spec, quality score fallback.
+    bubble_size_col = "market_cap_crore" if market_cap_ok else "composite_quality_score"
+    bubble_size_label = "Market Cap (Cr)" if market_cap_ok else "Quality Score"
 
-    bubble_size_col = "composite_quality_score"
-    bubble_size_label = "Quality Score"
-
-    if HAS_MARKET_CAP:
-        try:
-            market = get_market_cap()
-
-            if (
-                not market.empty
-                and "company_id" in market.columns
-                and "market_cap_crore" in market.columns
-            ):
-                df = df.merge(
-                    market[["company_id", "market_cap_crore"]],
-                    on="company_id",
-                    how="left",
-                )
-
-                if df["market_cap_crore"].notna().any():
-                    bubble_size_col = "market_cap_crore"
-                    bubble_size_label = "Market Cap (Cr)"
-        except Exception:
-            # Market cap unavailable/broken — silently keep the
-            # quality-score fallback rather than crashing the page.
-            pass
+    # X-axis label reflects whichever column actually got used.
+    x_axis_label = "Revenue (Cr)" if revenue_col != "revenue_cagr_5yr" else "Revenue CAGR (%)"
 
     # -----------------------------------------------------
-    # Sidebar (FIX 2: richer filters)
+    # Sidebar Filters
     # -----------------------------------------------------
 
     st.sidebar.header("🔍 Filters")
@@ -255,7 +351,7 @@ def show():
     )
 
     # -----------------------------------------------------
-    # FIX 3: Apply filters
+    # Apply Filters
     # -----------------------------------------------------
 
     sector_df = df.copy()
@@ -335,13 +431,14 @@ def show():
     divider()
 
     # -----------------------------------------------------
-    # Bubble Chart (FIX 4: market cap sizing, with fallback)
+    # Bubble Chart — X = Revenue, Y = ROE,
+    # Size = Market Cap, Colour = Sub Sector
     # -----------------------------------------------------
 
     st.subheader("📈 Sector Bubble Chart")
 
     st.caption(
-        f"X = Revenue CAGR | Y = ROE | Bubble Size = {bubble_size_label} | Colour = Sub Sector"
+        f"X = {x_axis_label} | Y = ROE | Bubble Size = {bubble_size_label} | Colour = Sub Sector"
     )
 
     bubble_df = sector_df.copy()
@@ -351,8 +448,8 @@ def show():
         .fillna(0)
     )
 
-    bubble_df["revenue_cagr_5yr"] = (
-        bubble_df["revenue_cagr_5yr"]
+    bubble_df[revenue_col] = (
+        bubble_df[revenue_col]
         .fillna(0)
     )
 
@@ -378,7 +475,7 @@ def show():
 
         bubble_df,
 
-        x="revenue_cagr_5yr",
+        x=revenue_col,
 
         y="return_on_equity_pct",
 
@@ -390,7 +487,7 @@ def show():
 
         hover_data={
 
-            "revenue_cagr_5yr": ":.2f",
+            revenue_col: ":.2f",
 
             "return_on_equity_pct": ":.2f",
 
@@ -400,7 +497,7 @@ def show():
 
         },
 
-        size_max=60,
+        size_max=70,
 
     )
 
@@ -425,7 +522,7 @@ def show():
 
         template="plotly_white",
 
-        xaxis_title="Revenue CAGR (%)",
+        xaxis_title=x_axis_label,
 
         yaxis_title="ROE (%)",
 
@@ -685,16 +782,23 @@ def show():
 
         market_cap_note = (
             "Market Capitalization data is available and is used for bubble size."
-            if bubble_size_col == "market_cap_crore"
-            else "Market Capitalization data is not available in the current database, "
-                 "so Composite Quality Score is used as the bubble size."
+            if market_cap_ok
+            else "Market Capitalization data could not be loaded, "
+                 "so Composite Quality Score is used as the bubble size instead."
+        )
+
+        revenue_note = (
+            f"Revenue column used: `{revenue_col}`."
+            if revenue_col != "revenue_cagr_5yr"
+            else "No Revenue column was found, so Revenue CAGR (5yr) is used "
+                 "on the X axis instead."
         )
 
         st.markdown(
             f"""
 ### Bubble Chart
 
-- **X Axis:** Revenue CAGR (5 Years)
+- **X Axis:** {x_axis_label}
 - **Y Axis:** Return on Equity (ROE)
 - **Bubble Size:** {bubble_size_label}
 - **Bubble Colour:** Sub Sector
@@ -704,8 +808,9 @@ def show():
 - Companies
 - Financial Ratios
 - Sectors
+- Market Cap
 
-> Note: {market_cap_note}
+> Note: {market_cap_note} {revenue_note}
             """
         )
 

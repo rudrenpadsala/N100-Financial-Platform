@@ -272,6 +272,67 @@ def get_reports(company_id=None):
 
 
 # -----------------------------------------------------
+# Market Cap
+# -----------------------------------------------------
+
+@st.cache_data(ttl=600)
+def get_market_cap(ticker=None):
+
+    conn = get_connection()
+
+    query = """
+    SELECT *
+    FROM market_cap
+    """
+
+    params = []
+
+    if ticker is not None:
+        query += " WHERE company_id = ?"
+        params.append(ticker)
+
+    query += " ORDER BY company_id, year"
+
+    df = pd.read_sql(
+        query,
+        conn,
+        params=params
+    )
+
+    conn.close()
+
+    return df
+
+
+@st.cache_data(ttl=600)
+def get_market_cap(ticker=None):
+
+    conn = get_connection()
+
+    query = """
+    SELECT *
+    FROM market_cap
+    """
+
+    params = []
+
+    if ticker is not None:
+        query += " WHERE company_id = ?"
+        params.append(ticker)
+
+    query += " ORDER BY company_id, year"
+
+    df = pd.read_sql(
+        query,
+        conn,
+        params=params,
+    )
+
+    conn.close()
+
+    return df
+
+# -----------------------------------------------------
 # Valuation
 # -----------------------------------------------------
 

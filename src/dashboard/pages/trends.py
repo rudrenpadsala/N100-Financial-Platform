@@ -274,6 +274,10 @@ def show():
 
         # ---------------------------------------------
         # YoY Annotation
+        #
+        # Format spec uses "+.1f" (note the leading +) so the
+        # sign is always shown explicitly: +12.0%, -5.0%, +18.0%
+        # rather than a bare 12.0% for positive changes.
         # ---------------------------------------------
 
         yoy = y.pct_change() * 100
@@ -292,7 +296,7 @@ def show():
 
                     y=value,
 
-                    text=f"{change:.1f}%",
+                    text=f"{change:+.1f}%",
 
                     showarrow=False,
 
@@ -466,4 +470,3 @@ def show():
         "📈 N100 Financial Analytics Dashboard | Trend Analysis"
 
     )
-    
