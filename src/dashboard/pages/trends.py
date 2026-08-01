@@ -7,6 +7,7 @@ from utils.db import (
     get_ratios,
 )
 from utils.theme import page_header
+from utils.helpers import display_value
 
 
 # =====================================================
@@ -35,7 +36,7 @@ def calculate_yoy(series):
 def format_number(value):
 
     if pd.isna(value):
-        return "0"
+        return "N/A"
 
     if abs(value) >= 1000:
         return f"{value:,.0f}"
@@ -214,17 +215,17 @@ def show():
 
     c1.metric(
         "ROE",
-        f"{latest['return_on_equity_pct']:.2f}%"
+        display_value(latest.get("return_on_equity_pct"), "%")
     )
 
     c2.metric(
         "Revenue CAGR",
-        f"{latest['revenue_cagr_5yr']:.2f}%"
+        display_value(latest.get("revenue_cagr_5yr"), "%")
     )
 
     c3.metric(
         "Quality Score",
-        f"{latest['composite_quality_score']:.2f}"
+        display_value(latest.get("composite_quality_score"))
     )
 
     st.divider()
@@ -244,6 +245,10 @@ def show():
     for i, metric_name in enumerate(selected_metrics):
 
         column = metric_map[metric_name]
+
+        if column not in company_df.columns:
+            st.info(f"{metric_name}: Data not available")
+            continue
 
         y = company_df[column].fillna(0)
 
@@ -429,7 +434,7 @@ def show():
 
     st.dataframe(
 
-        display_df,
+        display_df.fillna("N/A"),
 
         use_container_width=True,
 

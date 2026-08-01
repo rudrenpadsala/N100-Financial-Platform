@@ -9,6 +9,7 @@ from utils.db import (
     get_sectors,
 )
 from utils.theme import page_header
+from utils.helpers import display_value
 
 # ==========================================================
 # Divider
@@ -473,11 +474,14 @@ def show():
     k4, k5, k6 = st.columns(3)
 
     k1.metric("🏢 Companies", f"{total_companies}")
-    k2.metric("📈 Avg ROE", f"{avg_roe:.2f}%")
-    k3.metric("💰 Avg Revenue CAGR", f"{avg_revenue:.2f}%")
-    k4.metric("🏆 Avg Quality Score", f"{avg_quality:.2f}")
-    k5.metric("🏦 Avg Debt / Equity", f"{avg_debt:.2f}")
-    k6.metric("💵 Avg Free Cash Flow", f"{avg_fcf:,.0f} Cr")
+    k2.metric("📈 Avg ROE", display_value(avg_roe, "%"))
+    k3.metric("💰 Avg Revenue CAGR", display_value(avg_revenue, "%"))
+    k4.metric("🏆 Avg Quality Score", display_value(avg_quality))
+    k5.metric("🏦 Avg Debt / Equity", display_value(avg_debt))
+    k6.metric(
+        "💵 Avg Free Cash Flow",
+        "N/A" if pd.isna(avg_fcf) else f"{avg_fcf:,.0f} Cr",
+    )
 
     divider()
 
@@ -499,7 +503,7 @@ def show():
         .reset_index()
     )
 
-    st.dataframe(summary, use_container_width=True, hide_index=True)
+    st.dataframe(summary.fillna("N/A"), use_container_width=True, hide_index=True)
 
     divider()
 
@@ -532,7 +536,7 @@ def show():
         "Quality Score",
     ]
 
-    st.dataframe(top10, use_container_width=True, hide_index=True)
+    st.dataframe(top10.fillna("N/A"), use_container_width=True, hide_index=True)
 
     divider()
 
@@ -554,6 +558,7 @@ def show():
         treemap_df["TreeValue"]
         .fillna(treemap_df["composite_quality_score"])
         .replace(0, 1)
+        .fillna(1)
     )
 
     fig = px.treemap(
@@ -638,6 +643,7 @@ def show():
             xaxis_title="",
             yaxis_title="Companies",
             height=450,
+            margin=dict(l=20, r=20, t=40, b=20),
             showlegend=False,
         )
 
@@ -667,7 +673,11 @@ def show():
 
         fig2.update_traces(textposition="inside", textinfo="percent+label")
 
-        fig2.update_layout(title="Sector Distribution", height=450)
+        fig2.update_layout(
+            title="Sector Distribution",
+            height=450,
+            margin=dict(l=20, r=20, t=40, b=20),
+        )
 
         st.plotly_chart(fig2, use_container_width=True)
 
@@ -734,7 +744,7 @@ def show():
     # ======================================================
 
     st.dataframe(
-        company_table,
+        company_table.fillna("N/A"),
         use_container_width=True,
         hide_index=True,
         height=500,
@@ -782,7 +792,7 @@ def show():
     # -----------------------------------------------------
 
     with left:
-        st.dataframe(ranking, use_container_width=True, hide_index=True, height=420)
+        st.dataframe(ranking.fillna("N/A"), use_container_width=True, hide_index=True, height=420)
 
     # -----------------------------------------------------
     # Horizontal Ranking Chart
@@ -831,11 +841,11 @@ def show():
 
 • Pattern : **{best['Capital Pattern']}**
 
-• ROE : **{best['return_on_equity_pct']:.2f}%**
+• ROE : **{display_value(best.get('return_on_equity_pct'), '%')}**
 
-• Debt / Equity : **{best['debt_to_equity']:.2f}**
+• Debt / Equity : **{display_value(best.get('debt_to_equity'))}**
 
-• Quality Score : **{best['composite_quality_score']:.2f}**
+• Quality Score : **{display_value(best.get('composite_quality_score'))}**
 """
         )
 
@@ -882,6 +892,7 @@ def show():
             xaxis_title="",
             yaxis_title="ROE (%)",
             height=450,
+            margin=dict(l=20, r=20, t=40, b=20),
             showlegend=False,
         )
 
@@ -903,6 +914,12 @@ def show():
             .reset_index()
         )
 
+        pattern_stats["Avg_Quality"] = pattern_stats["Avg_Quality"].fillna(0)
+        pattern_stats["Avg_Debt"] = pattern_stats["Avg_Debt"].fillna(0)
+
+        # size values must be non-negative for plotly
+        pattern_stats["Avg_Quality"] = pattern_stats["Avg_Quality"].clip(lower=0)
+
         fig_pattern = px.scatter(
             pattern_stats,
             x="Avg_Debt",
@@ -919,6 +936,7 @@ def show():
             xaxis_title="Average Debt / Equity",
             yaxis_title="Average Quality Score",
             height=450,
+            margin=dict(l=20, r=20, t=40, b=20),
         )
 
         st.plotly_chart(fig_pattern, use_container_width=True)
@@ -953,7 +971,7 @@ def show():
         "Average Quality",
     ]
 
-    st.dataframe(stats.round(2), use_container_width=True, hide_index=True)
+    st.dataframe(stats.round(2).fillna("N/A"), use_container_width=True, hide_index=True)
 
     divider()
 

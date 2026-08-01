@@ -15,6 +15,7 @@ from utils.db import (
     get_sectors,
 )
 from utils.theme import page_header
+from utils.helpers import display_value
 
 
 def styled_divider():
@@ -55,31 +56,58 @@ def show():
         st.error("Company database not found.")
         st.stop()
 
-    company_names = sorted(
-        companies["company_name"]
+    # ---------------------------------------------------
+    # Search by Ticker (id) OR Company Name.
+    #
+    # Streamlit's selectbox filters its options list against
+    # whatever format_func renders, so typing "TCS" matches the
+    # "Tata Consultancy Services Ltd (TCS)" option even though the
+    # underlying value passed around is just the ticker id. This
+    # replaces the old company_name-only dropdown, which had no way
+    # to match on ticker at all.
+    # ---------------------------------------------------
+
+    company_ids = (
+        companies["id"]
         .dropna()
         .unique()
         .tolist()
     )
 
-    selected_company = st.selectbox(
-        "🔍 Search Company",
-        company_names,
+    def format_company_option(company_id):
+        row = companies.loc[companies["id"] == company_id]
+
+        if row.empty:
+            return company_id
+
+        name = row["company_name"].iloc[0]
+        return f"{name} ({company_id})"
+
+    company_ids_sorted = sorted(
+        company_ids,
+        key=lambda cid: format_company_option(cid),
     )
 
-    company = companies[
-        companies["company_name"] == selected_company
+    selected_id = st.selectbox(
+        "🔍 Search Company / Ticker",
+        company_ids_sorted,
+        format_func=format_company_option,
+    )
+
+    company_rows = companies[
+        companies["id"] == selected_id
     ]
 
-    if company.empty:
+    if company_rows.empty:
         st.warning(
             "Ticker not found — please try another."
         )
         st.stop()
 
-    company = company.iloc[0]
+    company = company_rows.iloc[0]
 
     company_id = company["id"]
+    selected_company = company["company_name"]
 
     # ---------------------------------------------------
     # Load Database Tables
@@ -93,6 +121,24 @@ def show():
     sector = sectors[
         sectors["company_id"] == company_id
     ]
+
+    # ---------------------------------------------------
+    # Data Available Indicator
+    # ---------------------------------------------------
+
+    if not ratios.empty:
+
+        available_years = len(ratios)
+
+        st.info(
+            f"📅 Data Available: {available_years} Financial Years"
+        )
+
+        if available_years < 10:
+
+            st.warning(
+                f"Only {available_years} years of financial data are available."
+            )
 
     # ---------------------------------------------------
     # Validate Required Data
@@ -116,25 +162,20 @@ def show():
     # ---------------------------------------------------
     # Safe Variables
     # ---------------------------------------------------
-    roe = safe_value(
-        latest.get("return_on_equity_pct")
-    )
+    roe_raw = latest.get("return_on_equity_pct")
+    roe = safe_value(roe_raw)
 
-    roce = safe_value(
-        company.get("roce_percentage")
-    )
+    roce_raw = company.get("roce_percentage")
+    roce = safe_value(roce_raw)
 
-    npm = safe_value(
-        latest.get("net_profit_margin_pct")
-    )
+    npm_raw = latest.get("net_profit_margin_pct")
+    npm = safe_value(npm_raw)
 
-    debt = safe_value(
-        latest.get("debt_to_equity")
-    )
+    debt_raw = latest.get("debt_to_equity")
+    debt = safe_value(debt_raw)
 
-    revenue_cagr = safe_value(
-        latest.get("revenue_cagr_5yr")
-    )
+    revenue_cagr_raw = latest.get("revenue_cagr_5yr")
+    revenue_cagr = safe_value(revenue_cagr_raw)
 
     pat_cagr = safe_value(
         latest.get("pat_cagr_5yr")
@@ -148,17 +189,40 @@ def show():
         latest.get("interest_coverage")
     )
 
-    fcf = safe_value(
-        latest.get("free_cash_flow_cr")
-    )
+    fcf_raw = latest.get("free_cash_flow_cr")
+    fcf = safe_value(fcf_raw)
 
-    quality = safe_value(
-        latest.get("composite_quality_score")
-    )
+    quality_raw = latest.get("composite_quality_score")
+    quality = safe_value(quality_raw)
 
     # ==========================================================
     # Company Information
     # ==========================================================
+
+    styled_divider()
+
+    # ---------------------------------------------------
+    # Sector / Company / Ticker info strip
+    #
+    # Placed immediately below the page title, matching the layout
+    # used by dashboards like Screener and Tickertape. Ticker uses
+    # company["id"] (the internal id already used for lookups)
+    # rather than chart_link, so it's guaranteed to match whatever
+    # was just searched/selected above.
+    # ---------------------------------------------------
+
+    sector_name = "N/A"
+    sub_sector = "N/A"
+
+    if not sector.empty:
+        sector_name = sector.iloc[0]["broad_sector"]
+        sub_sector = sector.iloc[0]["sub_sector"]
+
+    strip_col1, strip_col2, strip_col3 = st.columns(3)
+
+    strip_col1.info(f"**Sector**\n\n{sector_name}")
+    strip_col2.info(f"**Company**\n\n{company['company_name']}")
+    strip_col3.info(f"**Ticker**\n\n{company['id']}")
 
     styled_divider()
 
@@ -168,27 +232,37 @@ def show():
 
         st.subheader(company["company_name"])
 
-        ticker = company.get("chart_link")
-
-        if pd.notna(ticker):
-            st.write(f"**NSE Ticker:** {ticker}")
-
         about = company.get("about_company")
 
         if pd.notna(about):
             st.write(about)
+        else:
+            st.info("N/A")
 
         website = company.get("website")
 
-        if pd.notna(website):
+        if pd.isna(website):
+            st.write("🌐 **Website:** N/A")
+        else:
             st.write(f"🌐 **Website:** {website}")
 
-        face_value = safe_value(company.get("face_value"))
-        book_value = safe_value(company.get("book_value"))
+        face_value_raw = company.get("face_value")
+        book_value_raw = company.get("book_value")
 
-        st.write(f"💰 **Face Value:** ₹{face_value}")
+        face_value_text = (
+            "N/A"
+            if face_value_raw is None or pd.isna(face_value_raw)
+            else f"₹{face_value_raw}"
+        )
+        book_value_text = (
+            "N/A"
+            if book_value_raw is None or pd.isna(book_value_raw)
+            else f"₹{book_value_raw}"
+        )
 
-        st.write(f"📚 **Book Value:** ₹{book_value}")
+        st.write(f"💰 **Face Value:** {face_value_text}")
+
+        st.write(f"📚 **Book Value:** {book_value_text}")
 
     with sector_col:
 
@@ -206,12 +280,10 @@ def show():
                 f"**Sub Sector:** {sector_row['sub_sector']}"
             )
 
-            index_weight = safe_value(
-                sector_row.get("index_weight_pct")
-            )
+            index_weight_raw = sector_row.get("index_weight_pct")
 
             st.write(
-                f"**Index Weight:** {index_weight:.2f}%"
+                f"**Index Weight:** {display_value(index_weight_raw, '%')}"
             )
 
             market_cap = sector_row.get(
@@ -242,37 +314,43 @@ def show():
 
     row1[0].metric(
         "ROE",
-        f"{roe:.2f}%"
+        display_value(roe_raw, "%")
     )
 
     row1[1].metric(
         "ROCE",
-        f"{roce:.2f}%"
+        display_value(roce_raw, "%")
     )
 
     row1[2].metric(
         "Net Profit Margin",
-        f"{npm:.2f}%"
+        display_value(npm_raw, "%")
     )
 
     row2[0].metric(
         "Debt / Equity",
-        f"{debt:.2f}"
+        display_value(debt_raw)
     )
 
     row2[1].metric(
         "Revenue CAGR (5Y)",
-        f"{revenue_cagr:.2f}%"
+        display_value(revenue_cagr_raw, "%")
+    )
+
+    fcf_text = (
+        "N/A"
+        if fcf_raw is None or pd.isna(fcf_raw)
+        else f"₹{fcf_raw:.2f} Cr"
     )
 
     row2[2].metric(
         "Free Cash Flow",
-        f"₹{fcf:.2f} Cr"
+        fcf_text
     )
 
     st.metric(
         "Composite Quality Score",
-        f"{quality:.2f}"
+        display_value(quality_raw)
     )
 
     # ==========================================================
@@ -322,6 +400,7 @@ def show():
                 title="Revenue vs Net Profit",
                 barmode="group",
                 height=500,
+                margin=dict(l=20, r=20, t=40, b=20),
                 xaxis_title="Financial Year",
                 yaxis_title="₹ Crore",
                 legend_title="Metric",
@@ -427,6 +506,7 @@ def show():
 
             fig.update_layout(
                 height=500,
+                margin=dict(l=20, r=20, t=40, b=20),
                 legend_title="Metric",
                 transition=dict(duration=0),
             )
@@ -595,7 +675,7 @@ def show():
                 "year",
                 ascending=False,
             )
-            .fillna(0)
+            .fillna("N/A")
         )
 
         st.dataframe(
@@ -623,7 +703,7 @@ def show():
                 "year",
                 ascending=False,
             )
-            .fillna(0)
+            .fillna("N/A")
         )
 
         st.dataframe(
@@ -734,7 +814,7 @@ def show():
         st.download_button(
             label="📥 Download Profit & Loss CSV",
             data=csv,
-            file_name=f"{selected_company}_profit_loss.csv",
+            file_name=f"{selected_company}_{company_id}_profit_loss.csv",
             mime="text/csv",
         )
 

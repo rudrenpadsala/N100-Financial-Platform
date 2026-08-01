@@ -8,6 +8,7 @@ from utils.db import (
     get_sectors,
 )
 from utils.theme import page_header
+from utils.helpers import display_value
 
 # get_market_cap and get_pl are imported defensively. If either is
 # missing from utils/db.py, a plain `from utils.db import get_market_cap`
@@ -415,17 +416,17 @@ def show():
 
     c2.metric(
         "Average ROE",
-        f"{sector_df['return_on_equity_pct'].mean():.2f}%"
+        display_value(sector_df["return_on_equity_pct"].mean(), "%")
     )
 
     c3.metric(
         "Average Revenue CAGR",
-        f"{sector_df['revenue_cagr_5yr'].mean():.2f}%"
+        display_value(sector_df["revenue_cagr_5yr"].mean(), "%")
     )
 
     c4.metric(
         "Average Quality Score",
-        f"{sector_df['composite_quality_score'].mean():.2f}"
+        display_value(sector_df["composite_quality_score"].mean())
     )
 
     divider()
@@ -618,6 +619,13 @@ def show():
 
         height=500,
 
+        margin=dict(
+            l=20,
+            r=20,
+            t=40,
+            b=20,
+        ),
+
         template="plotly_white",
 
         showlegend=False,
@@ -698,7 +706,7 @@ def show():
 
     st.dataframe(
 
-        top_companies,
+        top_companies.fillna("N/A"),
 
         use_container_width=True,
 
@@ -743,17 +751,17 @@ def show():
 
     s1.metric(
         "Highest ROE",
-        f"{sector_df['return_on_equity_pct'].max():.2f}%"
+        display_value(sector_df["return_on_equity_pct"].max(), "%")
     )
 
     s2.metric(
         "Highest Revenue CAGR",
-        f"{sector_df['revenue_cagr_5yr'].max():.2f}%"
+        display_value(sector_df["revenue_cagr_5yr"].max(), "%")
     )
 
     s3.metric(
         "Highest Quality Score",
-        f"{sector_df['composite_quality_score'].max():.2f}"
+        display_value(sector_df["composite_quality_score"].max())
     )
 
     divider()

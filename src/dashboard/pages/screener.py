@@ -8,6 +8,7 @@ from utils.db import (
     get_sectors,
 )
 from utils.theme import page_header
+from utils.helpers import display_value
 
 
 def divider():
@@ -56,6 +57,45 @@ def to_excel(df):
         )
 
     return output.getvalue()
+
+
+def percentile_slider(label, series, default, low_q=0.01, high_q=0.99):
+    """
+    Build a slider whose min/max are the 1st/99th percentile of the
+    data rather than raw min()/max(). Protects against a handful of
+    bad/outlier rows (e.g. ROE of 4744%) blowing the slider range out
+    to something unusable, while still keeping ~98% of real data in
+    range.
+
+    The requested `default` is clamped into the computed [low, high]
+    bounds — otherwise, if the percentile range shrinks below the
+    hardcoded default (e.g. 99th-percentile ROE is 8% but default is
+    10.0), st.sidebar.slider raises an error.
+    """
+
+    low = float(series.quantile(low_q))
+    high = float(series.quantile(high_q))
+
+    # Degenerate case: percentiles collapse to the same value (e.g.
+    # a near-constant column). Fall back to raw min/max so the
+    # slider still has a usable range instead of low == high.
+    if low >= high:
+        low = float(series.min())
+        high = float(series.max())
+
+    if low >= high:
+        # Still degenerate (e.g. only one row). Widen slightly so
+        # Streamlit doesn't error on a zero-width slider.
+        high = low + 1.0
+
+    default_clamped = min(max(float(default), low), high)
+
+    return st.sidebar.slider(
+        label,
+        low,
+        high,
+        default_clamped,
+    )
 
 # ==========================================================
 # Screener Page
@@ -213,22 +253,29 @@ def show():
         st.rerun()
 
         # ======================================================
-    # Dynamic Slider Ranges
+    # Dynamic Slider Ranges (Fix 3: 1st/99th percentile clipping)
+    #
+    # Raw min()/max() on these columns can be dragged out to
+    # unusable extremes by a handful of bad-data outliers (e.g. a
+    # 4744% ROE row). Clipping the slider bounds to the 1st/99th
+    # percentile keeps ~98% of real data selectable while ignoring
+    # those extremes. FCF is intentionally left on raw min/max,
+    # since free cash flow legitimately varies across orders of
+    # magnitude between companies and percentile-clipping it would
+    # hide real (not erroneous) large-cap FCF values.
     # ======================================================
 
     st.sidebar.header("📊 Financial Filters")
 
-    roe_min = st.sidebar.slider(
+    roe_min = percentile_slider(
         "Minimum ROE (%)",
-        float(ratios["return_on_equity_pct"].min()),
-        float(ratios["return_on_equity_pct"].max()),
+        ratios["return_on_equity_pct"],
         10.0,
     )
 
-    debt_max = st.sidebar.slider(
+    debt_max = percentile_slider(
         "Maximum Debt / Equity",
-        float(ratios["debt_to_equity"].min()),
-        float(ratios["debt_to_equity"].max()),
+        ratios["debt_to_equity"],
         1.0,
     )
 
@@ -239,38 +286,33 @@ def show():
         0.0,
     )
 
-    revenue_min = st.sidebar.slider(
+    revenue_min = percentile_slider(
         "Minimum Revenue CAGR (%)",
-        float(ratios["revenue_cagr_5yr"].min()),
-        float(ratios["revenue_cagr_5yr"].max()),
+        ratios["revenue_cagr_5yr"],
         5.0,
     )
 
-    pat_min = st.sidebar.slider(
+    pat_min = percentile_slider(
         "Minimum PAT CAGR (%)",
-        float(ratios["pat_cagr_5yr"].min()),
-        float(ratios["pat_cagr_5yr"].max()),
+        ratios["pat_cagr_5yr"],
         5.0,
     )
 
-    opm_min = st.sidebar.slider(
+    opm_min = percentile_slider(
         "Minimum OPM (%)",
-        float(ratios["operating_profit_margin_pct"].min()),
-        float(ratios["operating_profit_margin_pct"].max()),
+        ratios["operating_profit_margin_pct"],
         10.0,
     )
 
-    dividend_min = st.sidebar.slider(
+    dividend_min = percentile_slider(
         "Minimum Dividend Payout (%)",
-        float(ratios["dividend_payout_ratio_pct"].min()),
-        float(ratios["dividend_payout_ratio_pct"].max()),
+        ratios["dividend_payout_ratio_pct"],
         0.0,
     )
 
-    icr_min = st.sidebar.slider(
+    icr_min = percentile_slider(
         "Minimum Interest Coverage",
-        float(ratios["interest_coverage"].min()),
-        float(ratios["interest_coverage"].max()),
+        ratios["interest_coverage"],
         3.0,
     )
 
@@ -453,7 +495,7 @@ def show():
         )
 
         st.dataframe(
-            sector_summary,
+            sector_summary.fillna("N/A"),
             use_container_width=True,
             hide_index=True,
         )
@@ -512,7 +554,7 @@ def show():
     else:
 
         st.dataframe(
-            display_df,
+            display_df.fillna("N/A"),
             use_container_width=True,
             hide_index=True,
         )
@@ -570,17 +612,17 @@ def show():
 
         c2.metric(
             "Average ROE",
-            f"{display_df['ROE (%)'].mean():.2f}%",
+            display_value(display_df["ROE (%)"].mean(), "%"),
         )
 
         c3.metric(
             "Average Revenue CAGR",
-            f"{display_df['Revenue CAGR (%)'].mean():.2f}%",
+            display_value(display_df["Revenue CAGR (%)"].mean(), "%"),
         )
 
         c4.metric(
             "Average Quality Score",
-            f"{display_df['Quality Score'].mean():.2f}",
+            display_value(display_df["Quality Score"].mean()),
         )
 
     # ======================================================
@@ -603,7 +645,7 @@ def show():
         )
 
         st.dataframe(
-            top10,
+            top10.fillna("N/A"),
             use_container_width=True,
             hide_index=True,
         )
@@ -640,6 +682,16 @@ def show():
 - Financial Ratios
 - Sectors
 
+### Slider Ranges
+
+Most financial-ratio sliders (ROE, Debt/Equity, Revenue CAGR, PAT
+CAGR, OPM, Dividend Payout, Interest Coverage) are bounded by the
+1st and 99th percentile of the current filtered dataset rather than
+raw min/max, so a handful of outlier or bad-data rows can't blow the
+slider range out to something unusable. Free Cash Flow keeps its
+raw min/max range, since large legitimate swings in FCF across
+companies are expected rather than data errors.
+
 ### Current Limitations
 
 - P/E Ratio filter unavailable
@@ -657,7 +709,3 @@ def show():
     st.caption(
         "📊 N100 Financial Analytics Dashboard | Stock Screener"
     )
-
-    
-
-    
