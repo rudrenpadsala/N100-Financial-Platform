@@ -7,81 +7,7 @@ from utils.db import (
     get_ratios,
     get_sectors,
 )
-
-# ==========================================================
-# Styling
-# ==========================================================
-
-def inject_css():
-    st.markdown(
-        """
-<style>
-
-@keyframes fadeInUp{
-    from{opacity:0;transform:translateY(14px);}
-    to{opacity:1;transform:translateY(0);}
-}
-
-.main .block-container{
-    animation:fadeInUp .6s ease-out;
-    padding-top:2rem;
-}
-
-h1{
-    background:linear-gradient(90deg,#6C63FF,#FF6B9D,#FFB86C);
-    background-size:200% auto;
-    -webkit-background-clip:text;
-    -webkit-text-fill-color:transparent;
-    animation:shimmer 6s linear infinite;
-    font-weight:800!important;
-}
-
-@keyframes shimmer{
-    0%{background-position:0%;}
-    100%{background-position:200%;}
-}
-
-h2,h3{
-    border-left:4px solid #6C63FF;
-    padding-left:.6rem;
-    font-weight:700!important;
-}
-
-div[data-testid="stMetric"]{
-    background:linear-gradient(
-        135deg,
-        rgba(108,99,255,.08),
-        rgba(255,107,157,.08)
-    );
-    border:1px solid rgba(108,99,255,.25);
-    border-radius:16px;
-    padding:1rem;
-    transition:.25s;
-}
-
-div[data-testid="stMetric"]:hover{
-    transform:translateY(-4px);
-    box-shadow:0 8px 18px rgba(108,99,255,.25);
-}
-
-div[data-testid="stDataFrame"],
-div[data-testid="stPlotlyChart"]{
-    border-radius:14px;
-    overflow:hidden;
-}
-
-section[data-testid="stSidebar"]{
-    background:linear-gradient(
-        180deg,
-        rgba(108,99,255,.05),
-        rgba(255,107,157,.02)
-    );
-}
-
-</style>
-""",
-        unsafe_allow_html=True,
-    )
+from utils.theme import page_header
 
 
 def divider():
@@ -137,9 +63,11 @@ def to_excel(df):
 
 def show():
 
-    inject_css()
-
-    st.title("📊 Stock Screener")
+    page_header(
+        "🔍",
+        "Stock Screener",
+        "Filter the Nifty 100 universe by the ratios and quality metrics that matter to you.",
+    )
 
     # ------------------------------------------------------
     # Load Data
@@ -727,7 +655,7 @@ def show():
     divider()
 
     st.caption(
-        "📊 N100 Financial Analytics Dashboard | Sprint 4 | Day 24 | Stock Screener"
+        "📊 N100 Financial Analytics Dashboard | Stock Screener"
     )
 
     

@@ -6,140 +6,7 @@ from utils.db import (
     get_companies,
     get_reports,
 )
-
-# ==========================================================
-# PAGE CONFIG
-# ==========================================================
-
-st.set_page_config(
-    page_title="Annual Reports",
-    page_icon="📄",
-    layout="wide",
-)
-
-# ==========================================================
-# CSS
-# ==========================================================
-
-def inject_css():
-
-    st.markdown(
-        """
-<style>
-
-@keyframes fadeInUp{
-from{opacity:0;transform:translateY(12px);}
-to{opacity:1;transform:translateY(0);}
-}
-
-.main .block-container{
-animation:fadeInUp .6s ease;
-padding-top:2rem;
-}
-
-h1{
-background:linear-gradient(90deg,#6C63FF,#FF6B9D,#FFB86C);
-background-size:200% auto;
--webkit-background-clip:text;
--webkit-text-fill-color:transparent;
-background-clip:text;
-animation:gradient 6s linear infinite;
-font-weight:800!important;
-}
-
-@keyframes gradient{
-0%{background-position:0% center;}
-100%{background-position:200% center;}
-}
-
-h2,h3{
-font-weight:700!important;
-border-left:4px solid #6C63FF;
-padding-left:.6rem;
-}
-
-div[data-testid="stMetric"]{
-background:linear-gradient(135deg,
-rgba(108,99,255,.08),
-rgba(255,107,157,.08));
-border:1px solid rgba(108,99,255,.20);
-border-radius:15px;
-padding:14px;
-box-shadow:0 4px 16px rgba(0,0,0,.08);
-transition:.25s;
-}
-
-div[data-testid="stMetric"]:hover{
-transform:translateY(-4px);
-box-shadow:0 8px 22px rgba(108,99,255,.25);
-}
-
-div[data-testid="stDataFrame"]{
-border-radius:14px;
-overflow:hidden;
-box-shadow:0 4px 16px rgba(0,0,0,.08);
-}
-
-div[data-testid="stExpander"]{
-border-radius:14px;
-}
-
-div[data-testid="stDownloadButton"] button{
-background:linear-gradient(90deg,#6C63FF,#FF6B9D);
-color:white;
-font-weight:700;
-border:none;
-border-radius:10px;
-}
-
-.report-ok{
-background:#198754;
-padding:5px 12px;
-border-radius:20px;
-color:white;
-font-size:13px;
-font-weight:700;
-display:inline-block;
-}
-
-.report-bad{
-background:#DC3545;
-padding:5px 12px;
-border-radius:20px;
-color:white;
-font-size:13px;
-font-weight:700;
-display:inline-block;
-}
-
-.pdf-card{
-
-padding:16px;
-
-border-radius:16px;
-
-border:1px solid rgba(108,99,255,.18);
-
-margin-bottom:14px;
-
-box-shadow:0 3px 12px rgba(0,0,0,.05);
-
-transition:.25s;
-
-}
-
-.pdf-card:hover{
-
-transform:translateY(-4px);
-
-box-shadow:0 8px 20px rgba(108,99,255,.18);
-
-}
-
-</style>
-        """,
-        unsafe_allow_html=True,
-    )
+from utils.theme import page_header
 
 # ==========================================================
 # HELPERS
@@ -258,9 +125,11 @@ def show():
     # PAGE START
     # ==========================================================
 
-    inject_css()
-
-    st.title("📄 Annual Reports")
+    page_header(
+        "📄",
+        "Annual Reports",
+        "Browse and download annual report filings by company and year.",
+    )
 
     # ==========================================================
     # LOAD DATA
@@ -813,8 +682,6 @@ def show():
     st.caption(
         """
     📄 N100 Financial Analytics Dashboard
-
-    Sprint 4 • Day 25
 
     Annual Reports Module
 

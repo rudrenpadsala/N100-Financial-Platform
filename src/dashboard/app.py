@@ -10,6 +10,7 @@ from pages import (
     capital,
     reports,
 )
+from utils.theme import apply_global_theme, render_sidebar_nav
 
 st.set_page_config(
     page_title="Nifty 100 Analytics",
@@ -18,42 +19,47 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-st.sidebar.title("📊 N100 Dashboard")
+# -----------------------------------------------------------------
+# Hide Streamlit's auto-generated multipage navigation.
+#
+# Because `pages/` is a real package/folder, Streamlit automatically
+# builds its own nav block at the top of the sidebar. That duplicates
+# the custom render_sidebar_nav() below it, so we hide the built-in
+# one and keep only our own themed nav.
+# -----------------------------------------------------------------
 
-page = st.sidebar.radio(
-    "Navigation",
-    [
-        "🏠 Home",
-        "🏢 Company Profile",
-        "🔍 Screener",
-        "👥 Peer Comparison",
-        "📈 Trend Analysis",
-        "🏭 Sector Analysis",
-        "💰 Capital Allocation",
-        "📄 Annual Reports",
-    ],
+st.markdown(
+    """
+    <style>
+    /* Hide Streamlit multipage navigation */
+    [data-testid="stSidebarNav"] {
+        display: none;
+    }
+
+    /* Hide the divider below it */
+    [data-testid="stSidebarNavSeparator"] {
+        display: none;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
 )
 
-if page == "🏠 Home":
-    home.show()
+# Single, shared design system for every page (colors, cards, charts,
+# tables, buttons, sidebar, etc.). Individual pages no longer inject
+# their own CSS or call st.set_page_config().
+apply_global_theme()
 
-elif page == "🏢 Company Profile":
-    profile.show()
+PAGES = {
+    "home": {"label": "Home", "icon": "🏠", "func": home.show},
+    "profile": {"label": "Company Profile", "icon": "🏢", "func": profile.show},
+    "screener": {"label": "Screener", "icon": "🔍", "func": screener.show},
+    "peers": {"label": "Peer Comparison", "icon": "👥", "func": peers.show},
+    "trends": {"label": "Trend Analysis", "icon": "📈", "func": trends.show},
+    "sectors": {"label": "Sector Analysis", "icon": "🏭", "func": sectors.show},
+    "capital": {"label": "Capital Allocation", "icon": "💰", "func": capital.show},
+    "reports": {"label": "Annual Reports", "icon": "📄", "func": reports.show},
+}
 
-elif page == "🔍 Screener":
-    screener.show()
-
-elif page == "👥 Peer Comparison":
-    peers.show()
-
-elif page == "📈 Trend Analysis":
-    trends.show()
-
-elif page == "🏭 Sector Analysis":
-    sectors.show()
-
-elif page == "💰 Capital Allocation":
-    capital.show()
-
-elif page == "📄 Annual Reports":
-    reports.show()
+selected_key = render_sidebar_nav(PAGES)
+PAGES[selected_key]["func"]()

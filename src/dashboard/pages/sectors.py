@@ -7,222 +7,15 @@ from utils.db import (
     get_ratios,
     get_sectors,
 )
-
-
-# =========================================================
-# CSS Styling
-# =========================================================
-
-def inject_css():
-
-    st.markdown(
-        """
-<style>
-
-@keyframes fadeInUp{
-from{
-opacity:0;
-transform:translateY(14px);
-}
-to{
-opacity:1;
-transform:translateY(0);
-}
-}
-
-.main .block-container{
-animation:fadeInUp .6s ease-out;
-padding-top:2rem;
-}
-
-h1{
-background:linear-gradient(
-90deg,
-#6C63FF,
-#FF6B9D,
-#FFB86C
-);
-
-background-size:200% auto;
-
--webkit-background-clip:text;
--webkit-text-fill-color:transparent;
-background-clip:text;
-
-font-weight:800!important;
-
-animation:shimmer 6s linear infinite;
-}
-
-@keyframes shimmer{
-
-0%{
-background-position:0%;
-}
-
-100%{
-background-position:200%;
-}
-
-}
-
-h2,h3{
-
-font-weight:700!important;
-
-border-left:4px solid #6C63FF;
-
-padding-left:.6rem;
-
-animation:fadeInUp .6s ease-out;
-
-}
-
-div[data-testid="stMetric"]{
-
-background:
-linear-gradient(
-135deg,
-rgba(108,99,255,.08),
-rgba(255,107,157,.08)
-);
-
-border:1px solid rgba(108,99,255,.25);
-
-border-radius:16px;
-
-padding:1rem;
-
-box-shadow:0 4px 14px rgba(0,0,0,.06);
-
-transition:.25s;
-
-animation:fadeInUp .7s ease-out;
-
-}
-
-div[data-testid="stMetric"]:hover{
-
-transform:translateY(-5px);
-
-box-shadow:0 10px 24px rgba(108,99,255,.25);
-
-border-color:#6C63FF;
-
-}
-
-div[data-testid="stMetricLabel"]{
-
-font-weight:600;
-
-opacity:.75;
-
-}
-
-div[data-testid="stMetricValue"]{
-
-font-size:1.6rem!important;
-
-font-weight:800!important;
-
-}
-
-hr{
-
-margin-top:1rem;
-
-margin-bottom:1rem;
-
-border:none;
-
-height:2px;
-
-background:
-linear-gradient(
-90deg,
-transparent,
-#6C63FF,
-transparent
-);
-
-}
-
-div[data-testid="stPlotlyChart"],
-div[data-testid="stDataFrame"]{
-
-border-radius:16px;
-
-overflow:hidden;
-
-box-shadow:0 4px 16px rgba(0,0,0,.06);
-
-transition:.25s;
-
-animation:fadeInUp .8s ease-out;
-
-}
-
-div[data-testid="stPlotlyChart"]:hover,
-div[data-testid="stDataFrame"]:hover{
-
-transform:translateY(-3px);
-
-box-shadow:0 10px 26px rgba(0,0,0,.12);
-
-}
-
-section[data-testid="stSidebar"]{
-
-background:
-linear-gradient(
-180deg,
-rgba(108,99,255,.05),
-rgba(255,107,157,.03)
-);
-
-}
-
-section[data-testid="stSidebar"] label{
-
-font-weight:700;
-
-color:#6C63FF;
-
-}
-
-div[data-testid="stDownloadButton"] button{
-
-background:
-linear-gradient(
-90deg,
-#6C63FF,
-#FF6B9D
-);
-
-color:white;
-
-font-weight:700;
-
-border:none;
-
-border-radius:10px;
-
-transition:.25s;
-
-}
-
-div[data-testid="stDownloadButton"] button:hover{
-
-transform:translateY(-3px);
-
-box-shadow:0 8px 18px rgba(108,99,255,.35);
-
-}
-
-</style>
-""",
-unsafe_allow_html=True,
-)
+from utils.theme import page_header
+
+# Fix 4: market cap is optional — import defensively so the page
+# still works if utils/db.py doesn't actually expose this function.
+try:
+    from utils.db import get_market_cap
+    HAS_MARKET_CAP = True
+except ImportError:
+    HAS_MARKET_CAP = False
 
 
 # =========================================================
@@ -260,9 +53,11 @@ def safe_float(value):
 
 def show():
 
-    inject_css()
-
-    st.title("🏢 Sector Analysis")
+    page_header(
+        "🏭",
+        "Sector Analysis",
+        "Compare sectors across profitability, leverage and growth.",
+    )
 
     # -----------------------------------------------------
     # Load Data
@@ -357,50 +152,150 @@ def show():
     )
 
     # -----------------------------------------------------
-    # Latest Financial Year
+    # FIX 1: Keep latest record PER COMPANY, not just the
+    # single latest year across the whole table.
+    #
+    # The old code did:
+    #     latest_year = df["year"].max()
+    #     df = df[df["year"] == latest_year]
+    # Since only 1 company (SIEMENS) had a Sep 2024 row while
+    # the other 91 were on Mar 2024, this silently dropped
+    # everyone else. Grouping per company_id and taking each
+    # company's own latest year fixes that.
     # -----------------------------------------------------
 
-    latest_year = df["year"].max()
+    df = (
+        df
+        .sort_values("year")
+        .groupby("company_id", as_index=False)
+        .last()
+    )
 
-    df = df[
-        df["year"] == latest_year
-    ].copy()
+    latest_year = "Latest Available"
 
     # -----------------------------------------------------
-    # Sidebar
+    # FIX 4 (data prep): try to bring in market cap for the
+    # bubble chart. Falls back to quality score if the table
+    # or column isn't actually available.
     # -----------------------------------------------------
 
-    st.sidebar.header("Sector Filters")
+    bubble_size_col = "composite_quality_score"
+    bubble_size_label = "Quality Score"
+
+    if HAS_MARKET_CAP:
+        try:
+            market = get_market_cap()
+
+            if (
+                not market.empty
+                and "company_id" in market.columns
+                and "market_cap_crore" in market.columns
+            ):
+                df = df.merge(
+                    market[["company_id", "market_cap_crore"]],
+                    on="company_id",
+                    how="left",
+                )
+
+                if df["market_cap_crore"].notna().any():
+                    bubble_size_col = "market_cap_crore"
+                    bubble_size_label = "Market Cap (Cr)"
+        except Exception:
+            # Market cap unavailable/broken — silently keep the
+            # quality-score fallback rather than crashing the page.
+            pass
+
+    # -----------------------------------------------------
+    # Sidebar (FIX 2: richer filters)
+    # -----------------------------------------------------
+
+    st.sidebar.header("🔍 Filters")
 
     sector_list = sorted(
-
-        df["broad_sector"]
-        .dropna()
-        .unique()
-        .tolist()
-
+        df["broad_sector"].dropna().unique().tolist()
     )
 
     selected_sector = st.sidebar.selectbox(
+        "Sector",
+        ["All"] + sector_list,
+    )
 
-        "Select Sector",
+    subsector_list = sorted(
+        df["sub_sector"].dropna().unique().tolist()
+    )
 
-        sector_list,
+    selected_subsector = st.sidebar.selectbox(
+        "Sub Sector",
+        ["All"] + subsector_list,
+    )
 
+    search_company = st.sidebar.text_input(
+        "Search Company"
+    )
+
+    roe = st.sidebar.slider(
+        "Minimum ROE (%)",
+        0,
+        50,
+        10,
+    )
+
+    growth = st.sidebar.slider(
+        "Minimum Revenue CAGR (%)",
+        -20,
+        50,
+        0,
+    )
+
+    quality = st.sidebar.slider(
+        "Minimum Quality Score",
+        0,
+        100,
+        0,
     )
 
     # -----------------------------------------------------
-    # Filter Sector
+    # FIX 3: Apply filters
     # -----------------------------------------------------
 
-    sector_df = df[
-        df["broad_sector"] == selected_sector
-    ].copy()
+    sector_df = df.copy()
+
+    if selected_sector != "All":
+        sector_df = sector_df[
+            sector_df["broad_sector"] == selected_sector
+        ]
+
+    if selected_subsector != "All":
+        sector_df = sector_df[
+            sector_df["sub_sector"] == selected_subsector
+        ]
+
+    if search_company:
+        sector_df = sector_df[
+            sector_df["company_name"]
+            .str.contains(
+                search_company,
+                case=False,
+                na=False,
+            )
+        ]
+
+    sector_df = sector_df[
+        sector_df["return_on_equity_pct"] >= roe
+    ]
+
+    sector_df = sector_df[
+        sector_df["revenue_cagr_5yr"] >= growth
+    ]
+
+    sector_df = sector_df[
+        sector_df["composite_quality_score"] >= quality
+    ]
 
     if sector_df.empty:
 
         st.warning(
-            "No companies available."
+            "No companies match the selected filters."
         )
 
         st.stop()
@@ -409,7 +304,11 @@ def show():
     # KPI Cards
     # -----------------------------------------------------
 
-    st.subheader(selected_sector)
+    header_label = (
+        selected_sector if selected_sector != "All" else "All Sectors"
+    )
+
+    st.subheader(header_label)
 
     c1, c2, c3, c4 = st.columns(4)
 
@@ -435,14 +334,14 @@ def show():
 
     divider()
 
-        # -----------------------------------------------------
-    # Bubble Chart
+    # -----------------------------------------------------
+    # Bubble Chart (FIX 4: market cap sizing, with fallback)
     # -----------------------------------------------------
 
     st.subheader("📈 Sector Bubble Chart")
 
     st.caption(
-        "X = Revenue CAGR | Y = ROE | Bubble Size = Quality Score | Colour = Sub Sector"
+        f"X = Revenue CAGR | Y = ROE | Bubble Size = {bubble_size_label} | Colour = Sub Sector"
     )
 
     bubble_df = sector_df.copy()
@@ -457,10 +356,13 @@ def show():
         .fillna(0)
     )
 
-    bubble_df["composite_quality_score"] = (
-        bubble_df["composite_quality_score"]
-        .fillna(10)
+    bubble_df[bubble_size_col] = (
+        bubble_df[bubble_size_col]
+        .fillna(0 if bubble_size_col == "market_cap_crore" else 10)
     )
+
+    # size values must be non-negative for plotly
+    bubble_df[bubble_size_col] = bubble_df[bubble_size_col].clip(lower=0)
 
     bubble_df["sub_sector"] = (
         bubble_df["sub_sector"]
@@ -480,7 +382,7 @@ def show():
 
         y="return_on_equity_pct",
 
-        size="composite_quality_score",
+        size=bubble_size_col,
 
         color="sub_sector",
 
@@ -492,7 +394,7 @@ def show():
 
             "return_on_equity_pct": ":.2f",
 
-            "composite_quality_score": ":.2f",
+            bubble_size_col: ":.2f",
 
             "sub_sector": True,
 
@@ -555,7 +457,7 @@ def show():
 
     divider()
 
-        # -----------------------------------------------------
+    # -----------------------------------------------------
     # Sector Median KPI Chart
     # -----------------------------------------------------
 
@@ -709,7 +611,7 @@ def show():
 
     divider()
 
-        # -----------------------------------------------------
+    # -----------------------------------------------------
     # Download CSV
     # -----------------------------------------------------
 
@@ -719,10 +621,16 @@ def show():
         index=False
     ).encode("utf-8")
 
+    export_name = (
+        selected_sector.lower().replace(" ", "_")
+        if selected_sector != "All"
+        else "all_sectors"
+    )
+
     st.download_button(
         label="Download Sector Analysis (CSV)",
         data=csv,
-        file_name=f"{selected_sector.lower().replace(' ','_')}_sector_analysis.csv",
+        file_name=f"{export_name}_sector_analysis.csv",
         mime="text/csv",
     )
 
@@ -760,28 +668,35 @@ def show():
     with st.expander("ℹ Dataset Information"):
 
         st.write(
-            f"**Financial Year:** {latest_year}"
+            f"**Financial Year:** {latest_year} (per-company latest)"
         )
 
         st.write(
-            f"**Selected Sector:** {selected_sector}"
+            f"**Selected Sector:** {header_label}"
         )
 
         st.write(
-            f"**Companies in Sector:** {len(sector_df)}"
+            f"**Companies Shown:** {len(sector_df)}"
         )
 
         st.write(
             f"**Total Companies:** {len(df)}"
         )
 
+        market_cap_note = (
+            "Market Capitalization data is available and is used for bubble size."
+            if bubble_size_col == "market_cap_crore"
+            else "Market Capitalization data is not available in the current database, "
+                 "so Composite Quality Score is used as the bubble size."
+        )
+
         st.markdown(
-            """
+            f"""
 ### Bubble Chart
 
 - **X Axis:** Revenue CAGR (5 Years)
 - **Y Axis:** Return on Equity (ROE)
-- **Bubble Size:** Composite Quality Score
+- **Bubble Size:** {bubble_size_label}
 - **Bubble Colour:** Sub Sector
 
 ### Data Sources
@@ -790,7 +705,7 @@ def show():
 - Financial Ratios
 - Sectors
 
-> Note: Market Capitalization data is not available in the current database, so Composite Quality Score is used as the bubble size.
+> Note: {market_cap_note}
             """
         )
 
@@ -801,5 +716,5 @@ def show():
     # -----------------------------------------------------
 
     st.caption(
-        "📊 N100 Financial Analytics Dashboard | Sprint 4 | Day 25 | Sector Analysis"
+        "📊 N100 Financial Analytics Dashboard | Sector Analysis"
     )

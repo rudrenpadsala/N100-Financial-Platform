@@ -7,158 +7,7 @@ from utils.db import (
     get_ratios,
     get_peers,
 )
-
-
-# =====================================================
-# Styling (CSS + animations) - same treatment as
-# the main dashboard page
-# =====================================================
-
-def inject_css():
-    st.markdown(
-        """
-        <style>
-
-        /* ---------- Global fade-in for the whole page ---------- */
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(14px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
-
-        .main .block-container {
-            animation: fadeInUp 0.6s ease-out;
-            padding-top: 2rem;
-        }
-
-        /* ---------- Title ---------- */
-        h1 {
-            background: linear-gradient(90deg, #6C63FF, #FF6B9D, #FFB86C);
-            background-size: 200% auto;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            animation: shimmer 6s linear infinite;
-            font-weight: 800 !important;
-        }
-
-        @keyframes shimmer {
-            0%   { background-position: 0% center; }
-            100% { background-position: 200% center; }
-        }
-
-        /* ---------- Subheaders ---------- */
-        h2, h3 {
-            font-weight: 700 !important;
-            border-left: 4px solid #6C63FF;
-            padding-left: 0.6rem;
-            animation: fadeInUp 0.6s ease-out;
-        }
-
-        /* ---------- KPI metric cards ---------- */
-        div[data-testid="stMetric"] {
-            background: linear-gradient(135deg, rgba(108,99,255,0.08), rgba(255,107,157,0.08));
-            border: 1px solid rgba(108,99,255,0.25);
-            border-radius: 16px;
-            padding: 1rem 1rem 0.6rem 1rem;
-            box-shadow: 0 4px 14px rgba(0,0,0,0.06);
-            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
-            animation: fadeInUp 0.7s ease-out;
-        }
-
-        div[data-testid="stMetric"]:hover {
-            transform: translateY(-6px) scale(1.02);
-            box-shadow: 0 10px 24px rgba(108,99,255,0.25);
-            border-color: #6C63FF;
-        }
-
-        div[data-testid="stMetricLabel"] {
-            font-weight: 600;
-            opacity: 0.75;
-        }
-
-        div[data-testid="stMetricValue"] {
-            font-size: 1.6rem !important;
-            font-weight: 800 !important;
-        }
-
-        /* ---------- Divider (st.markdown("---")) ---------- */
-        hr {
-            margin-top: 1.2rem;
-            margin-bottom: 1.2rem;
-            border: none;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, #6C63FF, transparent);
-            animation: fadeInUp 0.8s ease-out;
-        }
-
-        /* ---------- Charts, dataframe & expander containers ---------- */
-        div[data-testid="stPlotlyChart"],
-        div[data-testid="stDataFrame"],
-        div[data-testid="stExpander"] {
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
-            transition: box-shadow 0.25s ease, transform 0.25s ease;
-            animation: fadeInUp 0.8s ease-out;
-        }
-
-        div[data-testid="stPlotlyChart"]:hover,
-        div[data-testid="stDataFrame"]:hover {
-            box-shadow: 0 10px 26px rgba(0,0,0,0.12);
-            transform: translateY(-3px);
-        }
-
-        /* ---------- Selectboxes ---------- */
-        div[data-testid="stSelectbox"] label {
-            font-weight: 700;
-            color: #6C63FF;
-        }
-
-        div[data-baseweb="select"] {
-            border-radius: 10px !important;
-            transition: box-shadow 0.25s ease;
-        }
-
-        div[data-baseweb="select"]:hover {
-            box-shadow: 0 0 0 2px rgba(108,99,255,0.3);
-        }
-
-        /* ---------- Success / info banners (benchmark callouts) ---------- */
-        div[data-testid="stAlert"] {
-            border-radius: 12px;
-            animation: fadeInUp 0.6s ease-out;
-            transition: transform 0.2s ease;
-        }
-
-        div[data-testid="stAlert"]:hover {
-            transform: translateY(-2px);
-        }
-
-        /* ---------- Download button ---------- */
-        div[data-testid="stDownloadButton"] button {
-            border-radius: 10px;
-            font-weight: 700;
-            background: linear-gradient(90deg, #6C63FF, #FF6B9D);
-            color: white;
-            border: none;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        div[data-testid="stDownloadButton"] button:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 18px rgba(108,99,255,0.35);
-        }
-
-        /* ---------- Caption / footer ---------- */
-        .stCaption, [data-testid="stCaptionContainer"] {
-            opacity: 0.7;
-            animation: fadeInUp 0.9s ease-out;
-        }
-
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
+from utils.theme import page_header
 
 
 def styled_divider():
@@ -186,9 +35,11 @@ def safe_series(df, column, default=0):
 
 def show():
 
-    inject_css()
-
-    st.title("👥 Peer Comparison")
+    page_header(
+        "👥",
+        "Peer Comparison",
+        "Benchmark a company against its closest sector peers, side by side.",
+    )
 
     # -------------------------------------------------
     # Load Database
@@ -869,5 +720,5 @@ def show():
     styled_divider()
 
     st.caption(
-        "📊 N100 Financial Analytics Dashboard | Sprint 4 | Day 24 | Peer Comparison"
-    )
+            "📊 N100 Financial Analytics Dashboard "
+        )

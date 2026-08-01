@@ -6,222 +6,7 @@ from utils.db import (
     get_companies,
     get_ratios,
 )
-
-
-# =====================================================
-# CSS Styling
-# =====================================================
-
-def inject_css():
-
-    st.markdown(
-        """
-<style>
-
-@keyframes fadeInUp{
-from{
-opacity:0;
-transform:translateY(14px);
-}
-to{
-opacity:1;
-transform:translateY(0);
-}
-}
-
-.main .block-container{
-animation:fadeInUp .6s ease-out;
-padding-top:2rem;
-}
-
-h1{
-background:linear-gradient(
-90deg,
-#6C63FF,
-#FF6B9D,
-#FFB86C
-);
-
-background-size:200% auto;
-
--webkit-background-clip:text;
--webkit-text-fill-color:transparent;
-background-clip:text;
-
-font-weight:800!important;
-
-animation:shimmer 6s linear infinite;
-}
-
-@keyframes shimmer{
-
-0%{
-background-position:0%;
-}
-
-100%{
-background-position:200%;
-}
-
-}
-
-h2,h3{
-
-font-weight:700!important;
-
-border-left:4px solid #6C63FF;
-
-padding-left:.6rem;
-
-animation:fadeInUp .6s ease-out;
-
-}
-
-div[data-testid="stMetric"]{
-
-background:
-linear-gradient(
-135deg,
-rgba(108,99,255,.08),
-rgba(255,107,157,.08)
-);
-
-border:1px solid rgba(108,99,255,.25);
-
-border-radius:16px;
-
-padding:1rem;
-
-box-shadow:0 4px 14px rgba(0,0,0,.06);
-
-transition:.25s;
-
-animation:fadeInUp .7s ease-out;
-
-}
-
-div[data-testid="stMetric"]:hover{
-
-transform:translateY(-5px);
-
-box-shadow:0 10px 24px rgba(108,99,255,.25);
-
-border-color:#6C63FF;
-
-}
-
-div[data-testid="stMetricLabel"]{
-
-font-weight:600;
-
-opacity:.75;
-
-}
-
-div[data-testid="stMetricValue"]{
-
-font-size:1.6rem!important;
-
-font-weight:800!important;
-
-}
-
-hr{
-
-margin-top:1rem;
-
-margin-bottom:1rem;
-
-border:none;
-
-height:2px;
-
-background:
-linear-gradient(
-90deg,
-transparent,
-#6C63FF,
-transparent
-);
-
-}
-
-div[data-testid="stPlotlyChart"],
-div[data-testid="stDataFrame"]{
-
-border-radius:16px;
-
-overflow:hidden;
-
-box-shadow:0 4px 16px rgba(0,0,0,.06);
-
-transition:.25s;
-
-animation:fadeInUp .8s ease-out;
-
-}
-
-div[data-testid="stPlotlyChart"]:hover,
-div[data-testid="stDataFrame"]:hover{
-
-transform:translateY(-3px);
-
-box-shadow:0 10px 26px rgba(0,0,0,.12);
-
-}
-
-section[data-testid="stSidebar"]{
-
-background:
-linear-gradient(
-180deg,
-rgba(108,99,255,.05),
-rgba(255,107,157,.03)
-);
-
-}
-
-section[data-testid="stSidebar"] label{
-
-font-weight:700;
-
-color:#6C63FF;
-
-}
-
-div[data-testid="stDownloadButton"] button{
-
-background:
-linear-gradient(
-90deg,
-#6C63FF,
-#FF6B9D
-);
-
-color:white;
-
-font-weight:700;
-
-border:none;
-
-border-radius:10px;
-
-transition:.25s;
-
-}
-
-div[data-testid="stDownloadButton"] button:hover{
-
-transform:translateY(-3px);
-
-box-shadow:0 8px 18px rgba(108,99,255,.35);
-
-}
-
-</style>
-""",
-unsafe_allow_html=True,
-)
+from utils.theme import page_header
 
 
 # =====================================================
@@ -273,9 +58,11 @@ def safe_float(value):
 
 def show():
 
-    inject_css()
-
-    st.title("📈 Trend Analysis")
+    page_header(
+        "📈",
+        "Trend Analysis",
+        "Track how key financial ratios have evolved over time.",
+    )
 
     # -------------------------------------------------
     # Load Data
@@ -676,7 +463,7 @@ def show():
 
     st.caption(
 
-        "📈 N100 Financial Analytics Dashboard | Sprint 4 | Day 25 | Trend Analysis"
+        "📈 N100 Financial Analytics Dashboard | Trend Analysis"
 
     )
     

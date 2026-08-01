@@ -8,77 +8,7 @@ from utils.db import (
     get_ratios,
     get_sectors,
 )
-
-# ==========================================================
-# Page Configuration
-# ==========================================================
-
-st.set_page_config(
-    page_title="Capital Allocation Map",
-    page_icon="🌳",
-    layout="wide",
-)
-
-# ==========================================================
-# CSS
-# ==========================================================
-
-def inject_css():
-
-    st.markdown(
-        """
-<style>
-
-@keyframes fadeIn{
-from{opacity:0;transform:translateY(10px);}
-to{opacity:1;transform:translateY(0);}
-}
-
-.main .block-container{
-padding-top:2rem;
-animation:fadeIn .5s ease;
-}
-
-h1{
-font-weight:800;
-background:linear-gradient(90deg,#7C4DFF,#FF6B9D,#FFA726);
--webkit-background-clip:text;
--webkit-text-fill-color:transparent;
-}
-
-h2,h3{
-font-weight:700;
-padding-left:10px;
-border-left:5px solid #7C4DFF;
-}
-
-div[data-testid="stMetric"]{
-background:#1E1E2F;
-padding:15px;
-border-radius:15px;
-border:1px solid rgba(124,77,255,.35);
-transition:.25s;
-}
-
-div[data-testid="stMetric"]:hover{
-transform:translateY(-4px);
-box-shadow:0 10px 25px rgba(124,77,255,.25);
-}
-
-div[data-testid="stDataFrame"]{
-border-radius:15px;
-overflow:hidden;
-}
-
-div[data-testid="stPlotlyChart"]{
-border-radius:15px;
-overflow:hidden;
-}
-
-</style>
-        """,
-        unsafe_allow_html=True,
-    )
+from utils.theme import page_header
 
 # ==========================================================
 # Divider
@@ -193,9 +123,11 @@ def classify_company(row):
 
 def show():
 
-    inject_css()
-
-    st.title("🌳 Capital Allocation Map")
+    page_header(
+        "💰",
+        "Capital Allocation Map",
+        "See how companies are deploying capital across the Nifty 100.",
+    )
 
     # ======================================================
     # Load Database Tables
@@ -1115,7 +1047,7 @@ Sprint 4 • Day 25
     # ======================================================
 
     st.caption(
-        "📊 N100 Financial Analytics Dashboard | Sprint 4 | Day 25 | Capital Allocation Map"
+        "📊 N100 Financial Analytics Dashboard "
     )
 
 
