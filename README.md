@@ -1,60 +1,355 @@
-# N100 Financial Analytics Dashboard
+# 📈 N100 Financial Platform
 
-A Streamlit-based financial analytics platform for analyzing Nifty 100 companies using financial statements, valuation metrics, sector analytics, and interactive dashboards.
-
----
-
-# Features
-
-- Dashboard Overview
-- Company Profile
-- Stock Screener
-- Peer Comparison
-- Trend Analysis
-- Sector Analysis
-- Capital Allocation Map
-- Annual Reports
-- Valuation Module
-- CSV & Excel Export
-- Interactive Plotly Charts
+A comprehensive financial analytics platform for the Nifty 100 companies that performs automated ETL, financial ratio analysis, NLP-based insights, cash flow intelligence, and professional PDF report generation.
 
 ---
 
-# Project Structure
+# 🚀 Project Overview
+
+The N100 Financial Platform processes financial statements of Nifty 100 companies and automatically generates:
+
+- Financial KPI calculations
+- Ratio analysis
+- Cash Flow Intelligence
+- NLP-generated Pros & Cons
+- Company Tearsheet PDFs
+- Sector Reports
+- Portfolio Summary Report
+
+The project is built using Python with SQLite as the database and ReportLab for professional PDF generation.
+
+---
+
+# 🏗️ Technology Stack
+
+- Python 3.12
+- SQLite
+- Pandas
+- NumPy
+- OpenPyXL
+- ReportLab
+- Matplotlib
+- Regex (NLP Parsing)
+
+---
+
+# 📂 Project Structure
 
 ```
-N100-Financial-Platform/
-
+N100-Financial-Platform
+│
+├── data/
+│   ├── raw/
+│   └── processed/
+│
+├── db/
+│   ├── nifty100.db
+│   └── schema.sql
 │
 ├── src/
 │   ├── analytics/
-│   │      valuation.py
-│   │
-│   └── dashboard/
-│          app.py
-│          pages/
-│          utils/
-│
-├── db/
-│      nifty100.db
+│   ├── etl/
+│   ├── nlp/
+│   ├── reports/
+│   └── utils/
 │
 ├── output/
-│      valuation_summary.xlsx
-│      valuation_flags.csv
+│
+├── reports/
+│   ├── tearsheets/
+│   ├── sector/
+│   └── portfolio/
+│
+├── docs/
 │
 ├── requirements.txt
-│
 └── README.md
 ```
 
 ---
 
-# Installation
+# 📅 Sprint Progress
+
+---
+
+# ✅ Sprint 1 — Data Foundation
+
+Completed
+
+### Features
+
+- Environment Setup
+- SQLite Database Design
+- ETL Pipeline
+- Data Validation
+- Data Quality Rules
+- Loader Engine
+- Validation Reports
+
+### Deliverables
+
+- SQLite Database
+- Validation Reports
+- ETL Scripts
+
+---
+
+# ✅ Sprint 2 — Financial KPI Engine
+
+Completed
+
+### Features
+
+Implemented financial KPI calculations
+
+- ROE
+- ROCE
+- Debt to Equity
+- Current Ratio
+- Interest Coverage
+- Operating Margin
+- Net Margin
+- Dividend Yield
+- EPS CAGR
+- Revenue CAGR
+- PAT CAGR
+- Cash Flow KPIs
+
+---
+
+# ✅ Sprint 3 — Analytics Engine
+
+Completed
+
+### Features
+
+- Peer Comparison
+- Percentile Rankings
+- CAGR Engine
+- Growth Analysis
+- Sector Analytics
+- Trend Detection
+
+---
+
+# ✅ Sprint 4 — Dashboard & Intelligence
+
+Completed
+
+### Features
+
+- Dashboard Dataset
+- Financial Scoring
+- Company Rankings
+- Sector Rankings
+- KPI Aggregation
+- Reporting Pipeline
+
+---
+
+# ✅ Sprint 5 — NLP + Reports + Cash Flow Intelligence
+
+Completed
+
+---
+
+## 📖 Day 29
+
+### NLP Analysis Parser
+
+Automatically parses textual financial analysis fields.
+
+Parses
+
+- Revenue CAGR
+- Profit CAGR
+- Stock CAGR
+- ROE
+
+Outputs
+
+```
+output/analysis_parsed.csv
+```
+
+```
+output/parse_failures.csv
+```
+
+---
+
+## 📖 Day 30
+
+### Auto Pros & Cons Generator
+
+Generates AI-style investment insights using financial rules.
+
+Features
+
+- 12 Pro Rules
+- 12 Con Rules
+- Confidence Score
+- Automatic Rule Engine
+
+Output
+
+```
+output/pros_cons_generated.csv
+```
+
+---
+
+## 📖 Day 31
+
+### Cash Flow Intelligence
+
+Automatically computes
+
+- Free Cash Flow
+- CFO Quality Score
+- CapEx Intensity
+- FCF Conversion
+- Distress Detection
+- Deleveraging Detection
+- Capital Allocation Pattern
+
+Outputs
+
+```
+output/cashflow_intelligence.xlsx
+```
+
+```
+output/distress_alerts.csv
+```
+
+---
+
+## 📖 Day 32
+
+### Capital Allocation Report
+
+Generates
+
+- Capital Allocation Summary
+- Pattern Distribution
+- Pattern Changes
+- Latest Pattern Classification
+
+Outputs
+
+```
+output/capital_allocation.csv
+```
+
+```
+output/pattern_distribution.csv
+```
+
+```
+output/pattern_changes.csv
+```
+
+---
+
+## 📖 Day 33
+
+### Company Tearsheet Generator
+
+Automatically creates professional 2-page PDF reports.
+
+Each report contains
+
+- Company Overview
+- KPI Dashboard
+- Revenue Trend
+- Net Profit Trend
+- Balance Sheet Analysis
+- Cash Flow Analysis
+- Pros
+- Cons
+- Capital Allocation Badge
+
+Output
+
+```
+reports/tearsheets/
+```
+
+---
+
+## 📖 Day 34
+
+### Batch Report Generation
+
+Automatically generates
+
+- 92 Company Tearsheets
+- Sector Reports
+
+Outputs
+
+```
+reports/tearsheets/
+```
+
+```
+reports/sector/
+```
+
+---
+
+## 📖 Day 35
+
+### Portfolio Summary Report
+
+Creates a complete portfolio report.
+
+Includes
+
+- One page per company
+- Top KPIs
+- Trend Indicators
+- Company Summary
+
+Output
+
+```
+reports/portfolio/
+```
+
+---
+
+# 📊 Generated Reports
+
+### CSV
+
+- analysis_parsed.csv
+- parse_failures.csv
+- pros_cons_generated.csv
+- distress_alerts.csv
+- capital_allocation.csv
+- pattern_distribution.csv
+- pattern_changes.csv
+
+### Excel
+
+- cashflow_intelligence.xlsx
+
+### PDFs
+
+- 92 Company Tearsheets
+- Sector Reports
+- Portfolio Summary
+
+---
+
+# ⚙️ Installation
 
 Clone repository
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/your-username/N100-Financial-Platform.git
 ```
 
 Install dependencies
@@ -65,300 +360,128 @@ pip install -r requirements.txt
 
 ---
 
-# Run Dashboard
+# ▶️ Run Modules
 
-Run the Streamlit application
+### NLP Parser
 
 ```bash
-streamlit run src/dashboard/app.py
-```
-
-Dashboard will open at
-
-```
-http://localhost:8501
+python -m src.nlp.parser
 ```
 
 ---
 
+### Pros & Cons Generator
+
+```bash
+python -m src.nlp.pros_cons_generator
+```
 
 ---
 
-# Dashboard Screens
+### Cash Flow Intelligence
 
-## 1. Dashboard
-
-Provides an overview of the N100 Financial Analytics platform with key financial KPIs, sector distribution, company statistics, and summary insights.
-
-**Features**
-- KPI Cards
-- Sector Distribution
-- Company Statistics
-- Financial Overview
-- Interactive Charts
-
-**Screenshot**
-
-*(Add Dashboard Screenshot Here)*
+```bash
+python -m src.analytics.cashflow_kpis
+```
 
 ---
 
-## 2. Company Profile
+### Capital Allocation Report
 
-Displays complete financial information for an individual company including financial statements, key ratios, historical trends, and business information.
-
-**Features**
-- Company Search
-- Company Details
-- ROE & ROCE
-- Revenue vs Net Profit Chart
-- Balance Sheet
-- Cash Flow
-- Financial Summary
-
-**Screenshot**
-
-*(Add Company Profile Screenshot Here)*
+```bash
+python -m src.analytics.capital_allocation
+```
 
 ---
 
-## 3. Stock Screener
+### Company Tearsheet
 
-Allows users to filter companies using financial metrics and export the results.
-
-**Features**
-- Financial Filters
-- Sector Filter
-- Company Search
-- Dynamic Sorting
-- CSV Download
-- Excel Download
-
-**Screenshot**
-
-*(Add Screener Screenshot Here)*
+```bash
+python -m src.reports.tearsheet TCS
+```
 
 ---
 
-## 4. Peer Comparison
+### Sector Report
 
-Compare a selected company with other companies in the same peer group.
-
-**Features**
-- Peer Selection
-- KPI Comparison
-- Radar Chart
-- Company Comparison Table
-
-**Screenshot**
-
-*(Add Peer Comparison Screenshot Here)*
+```bash
+python -m src.reports.sector_report
+```
 
 ---
 
-## 5. Trend Analysis
+### Batch Generation
 
-Visualizes historical financial performance across multiple years.
-
-**Features**
-- Company Search
-- Multi-Metric Selection
-- Trend Charts
-- YoY Analysis
-
-**Screenshot**
-
-*(Add Trend Analysis Screenshot Here)*
+```bash
+python -m src.reports.batch_generate
+```
 
 ---
 
-## 6. Sector Analysis
+### Portfolio Report
 
-Compares companies within sectors using financial performance and profitability metrics.
-
-**Features**
-- Bubble Chart
-- Sector KPIs
-- Revenue vs ROE
-- Company Rankings
-- CSV Export
-
-**Screenshot**
-
-*(Add Sector Analysis Screenshot Here)*
+```bash
+python -m src.reports.portfolio_report
+```
 
 ---
 
-## 7. Capital Allocation
+# 📈 Project Statistics
 
-Displays capital allocation strategies using an interactive treemap.
-
-**Features**
-- Treemap Visualization
-- Allocation Categories
-- Company Listing
-- Pattern Analysis
-
-**Screenshot**
-
-*(Add Capital Allocation Screenshot Here)*
-
----
-
-## 8. Annual Reports
-
-Provides quick access to annual reports for all companies.
-
-**Features**
-- Company Search
-- Annual Report Links
-- PDF Access
-- Missing Report Detection
-
-**Screenshot**
-
-*(Add Annual Reports Screenshot Here)*
+| Metric | Value |
+|---------|------:|
+| Companies | 92 |
+| Financial Ratio Records | 1065 |
+| Profit & Loss Records | 1276 |
+| Balance Sheet Records | 1312 |
+| Cash Flow Records | 1187 |
+| NLP Parsed Records | 79 |
+| Pros & Cons Generated | 806 |
+| Company Tearsheets | 92 |
+| Sector Reports | 10 |
+| Portfolio Reports | 1 |
 
 ---
 
-# Technologies Used
+# 🎯 Key Features
 
-- Python
-- Streamlit
-- Pandas
-- SQLite
-- Plotly
-- OpenPyXL
-
----
-
-# Data Sources
-
-- Financial Ratios
-- Profit & Loss
-- Balance Sheet
-- Cash Flow
-- Market Capitalization
-- Sector Information
+- Automated ETL Pipeline
+- Financial Ratio Engine
+- CAGR Analysis
+- Peer Comparison
+- NLP-Based Insights
+- Cash Flow Intelligence
+- Capital Allocation Analysis
+- Professional PDF Reports
+- Portfolio Analytics
+- SQLite Database
+- Modular Python Architecture
 
 ---
 
-# Deliverables
+# 📌 Future Scope
 
-- Interactive Dashboard
-- Stock Screener
-- Company Analytics
-- Sector Analytics
-- Valuation Module
-- CSV Export
-- Excel Export
-
-
----
-
-# Sprint Review
-
-## Demo Checklist
-
-The following features were demonstrated during the Sprint 4 review.
-
-| Module | Status |
-|---------|--------|
-| Dashboard Home | ✅ |
-| Company Profile | ✅ |
-| Stock Screener | ✅ |
-| Peer Comparison | ✅ |
-| Trend Analysis | ✅ |
-| Sector Analysis | ✅ |
-| Capital Allocation | ✅ |
-| Annual Reports | ✅ |
-| Valuation Module | ✅ |
-| CSV Export | ✅ |
-| Excel Export | ✅ |
+- Interactive Streamlit Dashboard
+- AI Stock Recommendation Engine
+- Forecasting Models
+- Real-Time Market Data Integration
+- Portfolio Optimization
+- REST API
+- Cloud Deployment
+- User Authentication
 
 ---
 
-# Quality Assurance
+# 👨‍💻 Author
 
-The dashboard successfully passed the following QA tests.
+**Rudren Padsala**
 
-| Test | Status |
-|------|--------|
-| Application Startup | ✅ Pass |
-| Dashboard Navigation | ✅ Pass |
-| Company Profile | ✅ Pass |
-| Stock Screener | ✅ Pass |
-| Peer Comparison | ✅ Pass |
-| Trend Analysis | ✅ Pass |
-| Sector Analysis | ✅ Pass |
-| Capital Allocation | ✅ Pass |
-| Annual Reports | ✅ Pass |
-| CSV Download | ✅ Pass |
-| Excel Download | ✅ Pass |
-| Missing Data Handling | ✅ Pass |
-| Responsive Layout | ✅ Pass |
-| Performance Testing | ✅ Pass |
+B.Tech Computer Science Engineering (AI & ML)
+
+Adani University
 
 ---
 
-# Performance
+# 📄 License
 
-| Metric | Result |
-|--------|--------|
-| Dashboard Startup | < 5 Seconds |
-| Company Profile | < 3 Seconds |
-| Stock Screener | Fast |
-| Charts | Responsive |
-| Database Queries | Cached |
-
----
-
-# Future Improvements
-
-Possible enhancements for future sprints:
-
-- Authentication and user login
-- Portfolio tracking
-- Watchlist functionality
-- AI-based stock recommendations
-- Live NSE/BSE market data integration
-- Mobile responsive optimization
-- Dark mode
-- PDF report generation
-- Portfolio comparison dashboard
-- Cloud deployment
-
----
-
-# Author
-
-**Name:** Rudren Padsala
-
-**Project:** N100 Financial Analytics Dashboard
-
-**Technology Stack**
-
-- Python
-- Streamlit
-- SQLite
-- Pandas
-- Plotly
-- OpenPyXL
-
----
-
-# License
-
-This project was developed for educational and internship purposes.
-
----
-
-# Project Status
-
-## Sprint 4 Completed Successfully ✅
-
-All planned features, testing, documentation, and deliverables have been completed successfully.
-
-Project Status:
-
-**Completed**
+This project is developed for educational and internship purposes.
