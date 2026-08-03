@@ -30,6 +30,10 @@ The project is built using Python with SQLite as the database and ReportLab for 
 - ReportLab
 - Matplotlib
 - Regex (NLP Parsing)
+- Scikit-learn (Clustering)
+- FastAPI + Uvicorn (REST API)
+- Streamlit + Plotly (Dashboard)
+- Pytest (Testing)
 
 ---
 
@@ -48,12 +52,17 @@ N100-Financial-Platform
 │
 ├── src/
 │   ├── analytics/
+│   ├── api/
+│   │   └── routers/
+│   ├── dashboard/
 │   ├── etl/
 │   ├── nlp/
 │   ├── reports/
+│   ├── screener/
 │   └── utils/
 │
 ├── output/
+│   └── final_deliverables/
 │
 ├── reports/
 │   ├── tearsheets/
@@ -61,6 +70,12 @@ N100-Financial-Platform
 │   └── portfolio/
 │
 ├── docs/
+│
+├── tests/
+│   ├── analytics/
+│   ├── api/
+│   ├── etl/
+│   └── kpi/
 │
 ├── requirements.txt
 └── README.md
@@ -320,6 +335,119 @@ reports/portfolio/
 
 ---
 
+# ✅ Sprint 6 — Clustering, REST API & Production Hardening
+
+Completed
+
+---
+
+## 📖 Day 36
+
+### KMeans Clustering
+
+Groups every company into 5 quantitative clusters using ROE, debt-to-equity,
+revenue CAGR, FCF CAGR and operating profit margin (sector-median imputation,
+StandardScaler, KMeans(n_clusters=5, random_state=42)).
+
+Outputs
+
+```
+reports/elbow_plot.png
+output/cluster_labels.csv
+```
+
+---
+
+## 📖 Day 37
+
+### Cluster Profiling
+
+Profiles every cluster's mean/median feature values and assigns readable
+names (High-Quality Compounders, Defensive Dividend Payers, Value Cyclicals,
+Distressed or Turnaround, Emerging Growth) based on composite quality and
+growth scores.
+
+Outputs
+
+```
+reports/correlation_heatmap.png
+output/outlier_report.csv
+output/portfolio_stats.csv
+```
+
+---
+
+## 📖 Day 38-40
+
+### FastAPI REST Layer
+
+23 endpoints across 8 routers under `/api/v1`, with CORS and request-logging
+middleware.
+
+| Router | Base Path |
+|---|---|
+| health | `/api/v1/health` |
+| companies | `/api/v1/companies` |
+| screener | `/api/v1/screener` |
+| sectors | `/api/v1/sectors` |
+| peers | `/api/v1/peers` |
+| valuation | `/api/v1/valuation` |
+| portfolio | `/api/v1/portfolio` |
+| documents | `/api/v1/documents` |
+
+Outputs
+
+```
+docs/openapi.json
+docs/postman_collection.json
+```
+
+---
+
+## 📖 Day 41-42
+
+### Testing
+
+144 tests (ETL / DQ / KPI / analytics / clustering / API), 0 failures.
+
+Outputs
+
+```
+reports/pytest_report.html
+```
+
+---
+
+## 📖 Day 43
+
+### Performance
+
+Added SQLite indexes on `financial_ratios`, `sectors`, `peer_groups`,
+`peer_percentiles`, `documents` and `prosandcons`; load-tested every API
+endpoint.
+
+Outputs
+
+```
+output/perf_notes.md
+```
+
+---
+
+## 📖 Day 44-45
+
+### Documentation & Acceptance
+
+Outputs
+
+```
+docs/analyst_guide.pdf
+acceptance_checklist.pdf
+output/final_deliverables/
+```
+
+---
+
 # 📊 Generated Reports
 
 ### CSV
@@ -331,6 +459,9 @@ reports/portfolio/
 - capital_allocation.csv
 - pattern_distribution.csv
 - pattern_changes.csv
+- cluster_labels.csv
+- outlier_report.csv
+- portfolio_stats.csv
 
 ### Excel
 
@@ -341,6 +472,13 @@ reports/portfolio/
 - 92 Company Tearsheets
 - Sector Reports
 - Portfolio Summary
+- Analyst Guide
+- Acceptance Checklist
+
+### API
+
+- docs/openapi.json
+- docs/postman_collection.json
 
 ---
 
@@ -426,6 +564,64 @@ python -m src.reports.portfolio_report
 
 ---
 
+### KMeans Clustering
+
+```bash
+python -m src.analytics.clustering
+```
+
+---
+
+### Cluster Profiling
+
+```bash
+python -m src.analytics.cluster_profiling
+```
+
+---
+
+### Run the REST API
+
+```bash
+uvicorn src.api.main:app --reload
+```
+
+Interactive docs: http://localhost:8000/docs
+
+---
+
+### Export OpenAPI Schema + Postman Collection
+
+```bash
+python -m src.api.export_api_docs
+```
+
+---
+
+### Create Performance Indexes
+
+```bash
+python -m src.etl.create_indexes
+```
+
+---
+
+### Run Tests
+
+```bash
+pytest
+```
+
+---
+
+### Generate Analyst Guide
+
+```bash
+python -m docs.generate_analyst_guide
+```
+
+---
+
 # 📈 Project Statistics
 
 | Metric | Value |
@@ -440,6 +636,9 @@ python -m src.reports.portfolio_report
 | Company Tearsheets | 92 |
 | Sector Reports | 10 |
 | Portfolio Reports | 1 |
+| Clusters | 5 |
+| API Endpoints | 23 |
+| Automated Tests | 144 (0 failures) |
 
 ---
 
@@ -454,19 +653,21 @@ python -m src.reports.portfolio_report
 - Capital Allocation Analysis
 - Professional PDF Reports
 - Portfolio Analytics
+- KMeans Company Clustering
+- REST API (FastAPI, 23 endpoints)
+- Interactive Streamlit Dashboard
 - SQLite Database
 - Modular Python Architecture
+- 144 Automated Tests
 
 ---
 
 # 📌 Future Scope
 
-- Interactive Streamlit Dashboard
 - AI Stock Recommendation Engine
 - Forecasting Models
 - Real-Time Market Data Integration
 - Portfolio Optimization
-- REST API
 - Cloud Deployment
 - User Authentication
 
