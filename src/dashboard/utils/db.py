@@ -4,10 +4,17 @@ Used by every Streamlit screen
 """
 
 import sqlite3
+from pathlib import Path
+
 import pandas as pd
 import streamlit as st
 
-DB_PATH = "db/nifty100.db"
+# Resolve the DB path relative to this file's location, not the process's
+# current working directory. This makes it work regardless of how/where
+# Streamlit (locally or on Streamlit Cloud) launches the app from.
+# utils/db.py -> utils -> dashboard -> src -> <repo root> -> db/nifty100.db
+_REPO_ROOT = Path(__file__).resolve().parents[3]
+DB_PATH = str(_REPO_ROOT / "db" / "nifty100.db")
 
 
 # -----------------------------------------------------
@@ -15,6 +22,14 @@ DB_PATH = "db/nifty100.db"
 # -----------------------------------------------------
 
 def get_connection():
+    if not Path(DB_PATH).exists():
+        st.error(
+            f"Database file not found at `{DB_PATH}`.\n\n"
+            "Make sure `db/nifty100.db` is committed to the repository "
+            "(check it isn't excluded by .gitignore) and pushed to GitHub "
+            "before deploying to Streamlit Cloud."
+        )
+        st.stop()
     return sqlite3.connect(DB_PATH)
 
 

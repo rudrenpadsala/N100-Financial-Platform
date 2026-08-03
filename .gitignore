@@ -16,8 +16,9 @@ __pycache__/
 # VS Code
 .vscode/
 
-# Database
+# Database (keep the app's database, ignore any others)
 *.db
+!db/nifty100.db
 
 # Output Files
 output/*.csv

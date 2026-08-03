@@ -16,7 +16,10 @@ st.set_page_config(
     page_title="Nifty 100 Analytics",
     page_icon="📈",
     layout="wide",
-    initial_sidebar_state="expanded",
+    # "auto": collapsed by default on narrow/mobile screens, expanded on
+    # desktop. Using a hardcoded "expanded" forced the sidebar to open as
+    # a full-screen overlay on phones every time the app loaded.
+    initial_sidebar_state="auto",
 )
 
 # -----------------------------------------------------------------

@@ -21,6 +21,7 @@ Danger    #DC3545
 """
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 PRIMARY = "#6C63FF"
 SECONDARY = "#FF6B9D"
@@ -291,8 +292,20 @@ def apply_global_theme() -> None:
            SIDEBAR — brand header + navigation bar
            ===================================================== */
         section[data-testid="stSidebar"] {
-            background: linear-gradient(180deg, rgba(108,99,255,0.07), rgba(255,107,157,0.03));
-            border-right: 1px solid rgba(108,99,255,0.12);
+            background: linear-gradient(180deg, #17172b, #14141f) !important;
+            border-right: 1px solid rgba(108,99,255,0.25);
+            box-shadow: 4px 0 24px rgba(0,0,0,0.35);
+        }
+
+        /* Force readable, high-contrast text for everything in the
+           sidebar, regardless of the user's light/dark theme setting,
+           since the sidebar background above is now a fixed dark color. */
+        section[data-testid="stSidebar"],
+        section[data-testid="stSidebar"] p,
+        section[data-testid="stSidebar"] span,
+        section[data-testid="stSidebar"] label,
+        section[data-testid="stSidebar"] div {
+            color: #F1F1F6;
         }
 
         section[data-testid="stSidebar"] .block-container {
@@ -396,6 +409,65 @@ def apply_global_theme() -> None:
             animation: fadeInUp 1s ease-out;
         }
 
+        /* =====================================================
+           MOBILE RESPONSIVENESS (phones & small tablets)
+           ===================================================== */
+        html, body {
+            overflow-x: hidden;
+        }
+
+        @media (max-width: 768px) {
+
+            .main .block-container {
+                padding-top: 1rem;
+                padding-left: 1rem;
+                padding-right: 1rem;
+                padding-bottom: 2rem;
+            }
+
+            h1 { font-size: 1.5rem !important; }
+            h2 { font-size: 1.2rem !important; }
+            h3 { font-size: 1.05rem !important; }
+
+            div[data-testid="stMetricValue"] {
+                font-size: 1.25rem !important;
+            }
+
+            /* NOTE: we deliberately do NOT override the sidebar's width
+               here. Streamlit calculates how far to slide the sidebar
+               off-screen (when collapsed) based on its own measured
+               width - forcing a different width with CSS made that
+               slide distance wrong, so the sidebar froze half-open,
+               overlapping the page content instead of covering or
+               fully hiding it. We only touch things that don't affect
+               that open/close geometry. */
+
+            /* Bigger, easier-to-tap nav rows */
+            section[data-testid="stSidebar"] div[data-testid="stRadio"] label {
+                padding: 14px 12px !important;
+            }
+
+            section[data-testid="stSidebar"] div[data-testid="stRadio"] label div[data-testid="stMarkdownContainer"] p {
+                font-size: 1rem;
+            }
+
+            /* Full-width, taller buttons are easier to tap accurately */
+            div[data-testid="stDownloadButton"] button,
+            div[data-testid="stButton"] button {
+                width: 100%;
+                padding-top: 0.6rem;
+                padding-bottom: 0.6rem;
+            }
+
+            /* Let wide tables/charts scroll horizontally inside their own
+               box instead of stretching the whole page sideways. */
+            div[data-testid="stDataFrame"],
+            div[data-testid="stPlotlyChart"] {
+                max-width: 100%;
+                overflow-x: auto;
+            }
+        }
+
         </style>
         """,
         unsafe_allow_html=True,
@@ -414,6 +486,37 @@ def page_header(icon: str, title: str, subtitle: str | None = None) -> None:
             f'<div class="n100-page-subtitle">{subtitle}</div>',
             unsafe_allow_html=True,
         )
+
+
+def _auto_collapse_sidebar_on_mobile() -> None:
+    """Close the sidebar overlay on phones after a nav tap.
+
+    Streamlit's *built-in* multipage nav auto-closes the mobile sidebar
+    overlay after a page link is tapped, but a custom st.radio-based nav
+    (like ours) doesn't get that behavior for free - so on phones the
+    overlay stayed open and covered the whole page after switching tabs.
+    This runs a tiny script (in a same-origin, zero-height iframe) that
+    clicks Streamlit's own sidebar-collapse button, but only when the
+    viewport is mobile-sized. On desktop this is a no-op.
+    """
+    components.html(
+        """
+        <script>
+        (function () {
+            try {
+                var doc = window.parent.document;
+                var isMobile = window.parent.innerWidth <= 768;
+                if (!isMobile) { return; }
+                var btn = doc.querySelector(
+                    '[data-testid="stSidebarCollapseButton"] button'
+                ) || doc.querySelector('[data-testid="stSidebarCollapseButton"]');
+                if (btn) { btn.click(); }
+            } catch (e) {}
+        })();
+        </script>
+        """,
+        height=0,
+    )
 
 
 def render_sidebar_nav(pages: dict) -> str:
@@ -447,6 +550,10 @@ def render_sidebar_nav(pages: dict) -> str:
             label_visibility="collapsed",
             key="n100_nav_radio",
         )
+
+        if st.session_state.get("_n100_last_nav") != choice_label:
+            st.session_state["_n100_last_nav"] = choice_label
+            _auto_collapse_sidebar_on_mobile()
 
         st.markdown(
             """
