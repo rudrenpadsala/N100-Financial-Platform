@@ -16,7 +16,7 @@ __pycache__/
 # VS Code
 .vscode/
 
-# Database (keep the app's database, ignore any others)
+# Database
 *.db
 !db/nifty100.db
 

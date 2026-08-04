@@ -16,10 +16,10 @@ report:
 	python src/etl/review_summary.py
 
 dashboard:
-	@echo Dashboard module will be implemented in a later sprint.
+	streamlit run src/dashboard/app.py
 
 api:
-	@echo API module will be implemented in a later sprint.
+	uvicorn src.api.main:app --reload
 
 ratios:
 	python src/analytics/kpi_engine.py
